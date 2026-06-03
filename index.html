@@ -110,15 +110,6 @@ textarea.input { resize: none; min-height: 80px; }
       🍳 この食材で献立を作る
     </button>
 
-    <!-- APIキー設定 -->
-    <div id="api-key-card" class="card" style="margin-top:12px;display:none">
-      <div class="section-title">⚙️ APIキー設定</div>
-      <input class="input" id="api-key-input" type="password" placeholder="sk-ant-api03-...">
-      <button class="btn btn-primary" style="margin-top:8px" onclick="saveApiKey()">保存</button>
-    </div>
-    <div style="text-align:center;margin-top:8px">
-      <button style="background:none;border:none;color:var(--text2);font-size:12px;cursor:pointer" onclick="toggleApiCard()">⚙️ APIキー設定</button>
-    </div>
   </div>
 
   <!-- レシピタブ -->
@@ -174,34 +165,15 @@ const TABS = ['ingredients','recipes','plan','shopping']
 let ingredients = JSON.parse(localStorage.getItem('ingredients') || '[]')
 let recipes = JSON.parse(localStorage.getItem('recipes') || '[]')
 let shoppingList = JSON.parse(localStorage.getItem('shoppingList') || '[]')
-let apiKey = localStorage.getItem('kondate_api_key') || ''
-
-// API Key setup
-function getApiKey() {
-  if (apiKey) return apiKey
-  // APIキーがなければ設定カードを表示
-  document.getElementById('api-key-card').style.display = 'block'
-  showTab('ingredients')
-  notify('APIキーを設定してください')
-  return null
-}
-
-function saveApiKey() {
-  const val = document.getElementById('api-key-input').value.trim()
-  if (!val.startsWith('sk-')) {
-    notify('sk- で始まるキーを入力してください')
-    return
-  }
-  apiKey = val
-  localStorage.setItem('kondate_api_key', apiKey)
-  document.getElementById('api-key-card').style.display = 'none'
-  document.getElementById('api-key-input').value = ''
-  notify('APIキーを保存しました！')
-}
-
-function toggleApiCard() {
-  const card = document.getElementById('api-key-card')
-  card.style.display = card.style.display === 'none' ? 'block' : 'none'
+async function callApi(body) {
+  const res = await fetch('/api/suggest', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  })
+  const data = await res.json()
+  if (!res.ok || data.error) throw new Error(data.error || 'APIエラー')
+  return data.text
 }
 
 function showTab(tab) {
@@ -288,53 +260,18 @@ function renderRecipes() {
 
 // 献立生成
 async function generatePlan() {
-  const key = getApiKey()
-  if (!key) return
-
   const planEl = document.getElementById('plan-content')
   planEl.innerHTML = '<div class="loading">🤖 AIが献立を考えています...</div>'
-
-  const recipeList = recipes.length > 0
-    ? `\n登録レシピ:\n${recipes.map(r => `・${r.name}（材料: ${r.ingredients}）`).join('\n')}`
-    : ''
-
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': key,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 1500,
-        system: `あなたは家庭料理の献立アドバイザーです。ユーザーの食材と登録レシピを参考にして、3〜5日分の献立（朝・昼・夜）を提案してください。
-以下のJSON形式のみで返答してください。前置きや説明は不要です。
-[{"day":"1日目","meals":{"朝":"料理名","昼":"料理名","夜":"料理名"},"note":"一言コメント","missing":["不足食材1","不足食材2"]}]`,
-        messages: [{
-          role: 'user',
-          content: `手持ち食材: ${ingredients.join('、') || 'なし'}${recipeList}\n\n3〜5日分の献立をJSON形式で提案してください。登録レシピを優先的に使ってください。`
-        }]
-      })
-    })
-
-    const data = await res.json()
-    if (!res.ok) throw new Error(data.error?.message || 'APIエラー')
-
-    const text = data.content?.[0]?.text || ''
+    const text = await callApi({ type: 'plan', ingredients, recipes })
     const match = text.match(/\[[\s\S]*\]/)
     if (!match) throw new Error('レスポンスの形式が不正です')
-
     const plan = JSON.parse(match[0])
     renderPlan(plan)
-
-    // 買い物リスト生成
     const allMissing = [...new Set(plan.flatMap(p => p.missing || []))]
     shoppingList = allMissing.map(item => ({ name: item, checked: false }))
     localStorage.setItem('shoppingList', JSON.stringify(shoppingList))
     notify('献立と買い物リストを生成しました！')
-
   } catch (e) {
     planEl.innerHTML = `<div class="loading" style="color:var(--red)">エラー: ${e.message}</div>`
   }
@@ -416,10 +353,6 @@ function addShopItem() {
 async function readRecipePhoto(event) {
   const file = event.target.files[0]
   if (!file) return
-
-  const key = getApiKey()
-  if (!key) return
-
   const preview = document.getElementById('recipe-photo-preview')
   const img = document.getElementById('recipe-photo-img')
   const status = document.getElementById('recipe-photo-status')
@@ -427,64 +360,27 @@ async function readRecipePhoto(event) {
   img.src = URL.createObjectURL(file)
   status.style.color = 'var(--text2)'
   status.textContent = '🤖 レシピを読み取り中...'
-
   const base64 = await new Promise(resolve => {
     const reader = new FileReader()
     reader.onload = e => resolve(e.target.result.split(',')[1])
     reader.readAsDataURL(file)
   })
-
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': key,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 1000,
-        system: `料理レシピの画像から情報を抽出し、以下のJSON形式のみで返してください。前置き不要。
-{"name":"料理名","ingredients":"材料1,材料2,材料3（量はなくて良い）","steps":"作り方の要約（2〜3文）"}
-レシピが読み取れない場合: {"error":"読み取れませんでした"}`,
-        messages: [{
-          role: 'user',
-          content: [{
-            type: 'image',
-            source: { type: 'base64', media_type: file.type, data: base64 }
-          }, {
-            type: 'text',
-            text: 'このレシピ画像から料理名・材料・作り方を抽出してJSON形式で返してください。'
-          }]
-        }]
-      })
-    })
-
-    const data = await res.json()
-    if (!res.ok) throw new Error(data.error?.message || 'APIエラー')
-
-    const text = data.content?.[0]?.text || ''
+    const text = await callApi({ type: 'recipe', imageBase64: base64, imageType: file.type })
     const match = text.match(/\{[\s\S]*\}/)
     if (!match) throw new Error('レシピを読み取れませんでした')
-
     const recipe = JSON.parse(match[0])
     if (recipe.error) throw new Error(recipe.error)
-
-    // フォームに自動入力
     document.getElementById('recipe-name').value = recipe.name || ''
     document.getElementById('recipe-ingredients').value = recipe.ingredients || ''
     document.getElementById('recipe-steps').value = recipe.steps || ''
-
     status.textContent = `✅ 「${recipe.name}」を読み取りました。内容を確認して保存してください。`
     status.style.color = 'var(--green)'
     notify('レシピを読み取りました！内容を確認して保存してください。')
-
   } catch (e) {
     status.textContent = `❌ エラー: ${e.message}`
     status.style.color = 'var(--red)'
   }
-
   event.target.value = ''
 }
 
@@ -492,90 +388,42 @@ async function readRecipePhoto(event) {
 async function readReceipt(event) {
   const file = event.target.files[0]
   if (!file) return
-
-  const key = getApiKey()
-  if (!key) return
-
-  // プレビュー表示
   const preview = document.getElementById('receipt-preview')
   const img = document.getElementById('receipt-img')
   const status = document.getElementById('receipt-status')
   preview.style.display = 'block'
   img.src = URL.createObjectURL(file)
+  status.style.color = 'var(--text2)'
   status.textContent = '🤖 レシートを解析中...'
-
-  // Base64変換
   const base64 = await new Promise(resolve => {
     const reader = new FileReader()
     reader.onload = e => resolve(e.target.result.split(',')[1])
     reader.readAsDataURL(file)
   })
-
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': key,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 800,
-        system: `レシート画像から食材・食品のみを抽出し、JSON配列で返してください。
-食品以外（日用品、洗剤、紙類など）は除外。料理に使える食材・食品のみ。
-形式: ["食材1","食材2","食材3"]
-前置き不要。JSON配列のみ返してください。`,
-        messages: [{
-          role: 'user',
-          content: [{
-            type: 'image',
-            source: { type: 'base64', media_type: file.type, data: base64 }
-          }, {
-            type: 'text',
-            text: 'このレシートから料理に使える食材・食品をJSON配列で抽出してください。'
-          }]
-        }]
-      })
-    })
-
-    const data = await res.json()
-    if (!res.ok) throw new Error(data.error?.message || 'APIエラー')
-
-    const text = data.content?.[0]?.text || ''
+    const text = await callApi({ type: 'receipt', imageBase64: base64, imageType: file.type })
     const match = text.match(/\[[\s\S]*\]/)
     if (!match) throw new Error('食材を読み取れませんでした')
-
     const extracted = JSON.parse(match[0])
     let added = 0
     extracted.forEach(item => {
       const clean = item.trim()
-      if (clean && !ingredients.includes(clean)) {
-        ingredients.push(clean)
-        added++
-      }
+      if (clean && !ingredients.includes(clean)) { ingredients.push(clean); added++ }
     })
     localStorage.setItem('ingredients', JSON.stringify(ingredients))
     renderIngredients()
-
     status.textContent = `✅ ${extracted.length}品目を読み取り、${added}件を追加しました`
     status.style.color = 'var(--green)'
     notify(`${added}件の食材を追加しました！`)
-
-    // 読み取り後すぐ献立提案するか確認
     setTimeout(() => {
       if (confirm(`${added}件の食材を追加しました。\nそのまま献立を作りますか？`)) {
-        showTab('plan')
-        generatePlan()
+        showTab('plan'); generatePlan()
       }
     }, 500)
-
   } catch (e) {
     status.textContent = `❌ エラー: ${e.message}`
     status.style.color = 'var(--red)'
   }
-
-  // input をリセット（同じ画像を再選択できるように）
   event.target.value = ''
 }
 
