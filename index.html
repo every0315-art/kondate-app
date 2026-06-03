@@ -116,6 +116,21 @@ textarea.input { resize: none; min-height: 80px; }
   <div id="tab-recipes" style="display:none">
     <h1>📖 レシピ登録</h1>
 
+    <!-- 表示切り替え -->
+    <div style="display:flex;gap:6px;margin-bottom:12px">
+      <button class="btn btn-small" id="view-btn-list" onclick="setRecipeView('list')" style="flex:1;background:var(--accent);color:#fff">一覧</button>
+      <button class="btn btn-small" id="view-btn-ingredient" onclick="setRecipeView('ingredient')" style="flex:1">食材別</button>
+    </div>
+
+    <!-- 食材別ビュー -->
+    <div id="recipe-view-ingredient" style="display:none">
+      <div id="ingredient-filter"></div>
+      <div id="ingredient-recipe-list" style="margin-top:12px"></div>
+    </div>
+
+    <!-- 一覧ビュー -->
+    <div id="recipe-view-list">
+
     <!-- 写真から読み込み -->
     <div class="card" style="border:2px dashed var(--accent);background:rgba(224,123,57,0.05)">
       <div class="section-title">📷 写真からレシピを読み込む</div>
@@ -137,6 +152,7 @@ textarea.input { resize: none; min-height: 80px; }
       <button class="btn btn-primary" onclick="saveRecipe()">レシピを保存</button>
     </div>
     <div id="recipe-list"></div>
+    </div><!-- /recipe-view-list -->
   </div>
 
   <!-- 献立タブ -->
@@ -238,6 +254,71 @@ function deleteRecipe(id) {
   recipes = recipes.filter(r => r.id !== id)
   localStorage.setItem('recipes', JSON.stringify(recipes))
   renderRecipes()
+}
+
+let recipeView = 'list'
+let selectedIngredient = null
+
+function setRecipeView(view) {
+  recipeView = view
+  document.getElementById('recipe-view-list').style.display = view === 'list' ? 'block' : 'none'
+  document.getElementById('recipe-view-ingredient').style.display = view === 'ingredient' ? 'block' : 'none'
+  document.getElementById('view-btn-list').style.cssText = view === 'list' ? 'flex:1;background:var(--accent);color:#fff' : 'flex:1'
+  document.getElementById('view-btn-ingredient').style.cssText = view === 'ingredient' ? 'flex:1;background:var(--accent);color:#fff' : 'flex:1'
+  if (view === 'ingredient') renderIngredientView()
+}
+
+function renderIngredientView() {
+  // 全レシピから食材を抽出してユニーク化
+  const allIngs = {}
+  recipes.forEach(r => {
+    r.ingredients.split(/[,、，\s]+/).map(i => i.trim()).filter(Boolean).forEach(ing => {
+      if (!allIngs[ing]) allIngs[ing] = []
+      allIngs[ing].push(r)
+    })
+  })
+
+  const sorted = Object.entries(allIngs).sort((a, b) => b[1].length - a[1].length)
+
+  if (sorted.length === 0) {
+    document.getElementById('ingredient-filter').innerHTML = '<div class="loading">レシピがまだありません</div>'
+    document.getElementById('ingredient-recipe-list').innerHTML = ''
+    return
+  }
+
+  // 食材タグ一覧
+  document.getElementById('ingredient-filter').innerHTML = sorted.map(([ing, rs]) =>
+    `<span class="tag ${selectedIngredient === ing ? 'active' : ''}" onclick="filterByIngredient('${ing.replace(/'/g,"\\'")}')">
+      ${ing} <span style="opacity:0.7">${rs.length}</span>
+    </span>`
+  ).join('')
+
+  // 選択中食材のレシピ
+  if (!selectedIngredient || !allIngs[selectedIngredient]) {
+    selectedIngredient = sorted[0][0]
+    renderIngredientView()
+    return
+  }
+
+  const matched = allIngs[selectedIngredient] || []
+  document.getElementById('ingredient-recipe-list').innerHTML = `
+    <div class="section-title" style="margin-bottom:8px">「${selectedIngredient}」を使うレシピ（${matched.length}件）</div>
+    ${matched.map(r => `
+      <div class="recipe-item">
+        <div class="recipe-name">${r.name}</div>
+        <div class="recipe-meta">材料: ${r.ingredients}</div>
+        ${r.steps ? `<div class="recipe-meta" style="margin-top:4px">${r.steps.slice(0,60)}${r.steps.length>60?'...':''}</div>` : ''}
+        <div class="recipe-actions">
+          <button class="btn btn-danger" onclick="deleteRecipe(${r.id});renderIngredientView()">削除</button>
+        </div>
+      </div>
+    `).join('')}
+  `
+}
+
+function filterByIngredient(ing) {
+  selectedIngredient = ing
+  renderIngredientView()
 }
 
 function renderRecipes() {
