@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f5e6c8"/>
+      <stop offset="100%" style="stop-color:#e8c88a"/>
+    </linearGradient>
+    <linearGradient id="bowl" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#e07b39"/>
+      <stop offset="100%" style="stop-color:#b85a20"/>
+    </linearGradient>
+    <linearGradient id="rice" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#fff8f0"/>
+      <stop offset="100%" style="stop-color:#f0e0c0"/>
+    </linearGradient>
+    <linearGradient id="chop1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8b4513"/>
+      <stop offset="100%" style="stop-color:#5c2d0a"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="6" stdDeviation="10" flood-color="#00000030"/>
+    </filter>
+  </defs>
+
+  <!-- 背景円 -->
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+
+  <!-- 外側のリング装飾 -->
+  <circle cx="256" cy="270" r="168" fill="none" stroke="#d4a060" stroke-width="3" opacity="0.4"/>
+
+  <!-- お椀の影 -->
+  <ellipse cx="256" cy="360" rx="145" ry="18" fill="#00000018"/>
+
+  <!-- お椀本体 -->
+  <path d="M 108 270 Q 108 420 256 420 Q 404 420 404 270 Z" fill="url(#bowl)" filter="url(#shadow)"/>
+
+  <!-- お椀の縁ハイライト -->
+  <path d="M 108 270 Q 256 240 404 270" fill="none" stroke="#f0a060" stroke-width="6" stroke-linecap="round" opacity="0.6"/>
+
+  <!-- ご飯 -->
+  <ellipse cx="256" cy="265" rx="148" ry="32" fill="url(#rice)"/>
+  <!-- ご飯の丸み -->
+  <ellipse cx="256" cy="250" rx="130" ry="40" fill="#fff8f0"/>
+  <!-- ご飯のハイライト -->
+  <ellipse cx="232" cy="238" rx="50" ry="16" fill="#ffffff" opacity="0.5"/>
+
+  <!-- お椀の縁（上部） -->
+  <path d="M 108 270 Q 256 255 404 270" fill="#c06830" stroke="none"/>
+  <path d="M 112 268 Q 256 252 400 268" fill="none" stroke="#e8904a" stroke-width="4" stroke-linecap="round" opacity="0.7"/>
+
+  <!-- 箸 1本目 -->
+  <rect x="195" y="80" width="14" height="210" rx="7"
+        fill="url(#chop1)"
+        transform="rotate(-12, 202, 185)"
+        filter="url(#shadow)"/>
+  <!-- 箸1ハイライト -->
+  <rect x="198" y="85" width="5" height="190" rx="2.5"
+        fill="#d4703a" opacity="0.5"
+        transform="rotate(-12, 202, 185)"/>
+
+  <!-- 箸 2本目 -->
+  <rect x="275" y="75" width="14" height="210" rx="7"
+        fill="url(#chop1)"
+        transform="rotate(8, 282, 180)"
+        filter="url(#shadow)"/>
+  <!-- 箸2ハイライト -->
+  <rect x="278" y="80" width="5" height="190" rx="2.5"
+        fill="#d4703a" opacity="0.5"
+        transform="rotate(8, 282, 180)"/>
+
+  <!-- 湯気 -->
+  <path d="M 220 205 Q 215 185 220 165 Q 225 145 220 125" fill="none" stroke="#e07b39" stroke-width="5" stroke-linecap="round" opacity="0.3"/>
+  <path d="M 256 200 Q 251 180 256 160 Q 261 140 256 120" fill="none" stroke="#e07b39" stroke-width="5" stroke-linecap="round" opacity="0.3"/>
+  <path d="M 292 205 Q 287 185 292 165 Q 297 145 292 125" fill="none" stroke="#e07b39" stroke-width="5" stroke-linecap="round" opacity="0.3"/>
+</svg>

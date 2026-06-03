@@ -4,7 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="献立アプリ">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="献立">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
 <title>献立アプリ</title>
 <style>
 :root {
@@ -51,15 +54,25 @@ h1 { font-size: 22px; font-weight: 800; padding: 16px 0 20px; }
 }
 .nav-btn {
   padding: 8px 4px 6px;
-  border: none; border-radius: 12px;
+  border: none; border-radius: 14px;
   background: transparent; color: var(--text2);
   font-size: 10px; cursor: pointer;
   transition: all 0.2s; font-weight: 600;
-  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
 }
-.nav-btn .nav-icon { font-size: 22px; line-height: 1; }
-.nav-btn.active { background: var(--accent); color: #fff; }
-.nav-btn.active .nav-icon { transform: scale(1.1); }
+.nav-btn .nav-icon {
+  font-size: 24px; line-height: 1;
+  width: 44px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 12px; transition: all 0.2s;
+}
+.nav-btn.active .nav-icon {
+  background: linear-gradient(135deg, var(--accent), #c05f1f);
+  box-shadow: 0 3px 10px rgba(224,123,57,0.4);
+  transform: scale(1.05);
+}
+.nav-btn.active { color: var(--accent); font-weight: 800; }
+.nav-btn:not(.active) .nav-icon:hover { background: var(--surface2); }
 
 /* Cards */
 .card { background: var(--surface); border-radius: 14px; padding: 16px; border: 1px solid var(--border); margin-bottom: 12px; }
@@ -368,13 +381,13 @@ textarea.input { resize: none; min-height: 80px; }
     <span class="nav-icon">🥕</span>食材
   </button>
   <button class="nav-btn" id="btn-recipes" onclick="showTab('recipes')">
-    <span class="nav-icon">📖</span>レシピ
+    <span class="nav-icon">📋</span>レシピ
   </button>
   <button class="nav-btn" id="btn-add-recipe" onclick="showTab('add-recipe')">
-    <span class="nav-icon">➕</span>登録
+    <span class="nav-icon">✏️</span>登録
   </button>
   <button class="nav-btn" id="btn-plan" onclick="showTab('plan')">
-    <span class="nav-icon">🍱</span>献立
+    <span class="nav-icon">🍽️</span>献立
   </button>
   <button class="nav-btn" id="btn-shopping" onclick="showTab('shopping')">
     <span class="nav-icon">🛒</span>買い物
