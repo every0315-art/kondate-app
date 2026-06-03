@@ -22,8 +22,8 @@ export default async function handler(req, res) {
     extraHeaders = { 'anthropic-beta': 'web-search-2025-03-05' }
     tools = [{ type: 'web_search_20250305', name: 'web_search' }]
     toolChoice = { type: 'any' }
-    system = `あなたは料理レシピの検索アシスタントです。ウェブ検索でレシピを調べ、結果を以下のJSON配列のみで返してください。前置き・説明不要。
-[{"name":"料理名","ingredients":"材料1,材料2,材料3（量なし）","steps":"作り方の要約（1〜2文）","source":"参考サイト"}]`
+    system = `あなたは料理レシピの検索アシスタントです。ウェブ検索でレシピを調べ、結果を以下のJSON配列のみで返してください。前置き・説明不要。材料は分量も含めて記載すること。
+[{"name":"料理名","ingredients":"材料1 分量,材料2 分量,材料3 分量","steps":"作り方の要約（2〜3文）","source":"参考サイト"}]`
     messages = [{ role: 'user', content: `${ingredients?.join('、')} を使った家庭料理のレシピを3〜5件検索してJSON配列で返してください。` }]
 
   } else if (type === 'receipt') {
@@ -34,8 +34,8 @@ export default async function handler(req, res) {
     ]}]
 
   } else if (type === 'recipe') {
-    system = `料理レシピの画像から情報を抽出し、以下のJSON形式のみで返してください。前置き不要。
-{"name":"料理名","ingredients":"材料1,材料2,材料3","steps":"作り方の要約"}
+    system = `料理レシピの画像から情報を抽出し、以下のJSON形式のみで返してください。前置き不要。材料は分量も含めて記載。
+{"name":"料理名","ingredients":"材料1 分量,材料2 分量,材料3 分量","steps":"作り方の要約（2〜3文）"}
 読み取れない場合: {"error":"読み取れませんでした"}`
     messages = [{ role: 'user', content: [
       { type: 'image', source: { type: 'base64', media_type: imageType, data: imageBase64 } },
