@@ -30,8 +30,8 @@ h1 { font-size: 22px; font-weight: 800; padding: 16px 0 20px; }
   background: rgba(255,255,255,0.95);
   backdrop-filter: blur(12px);
   border-top: 1px solid var(--border);
-  display: grid; grid-template-columns: 1fr 1fr 1fr 1fr;
-  padding: 8px 12px 28px; gap: 6px; z-index: 50;
+  display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+  padding: 8px 8px 28px; gap: 4px; z-index: 50;
 }
 .nav-btn {
   padding: 8px 4px 6px;
@@ -177,9 +177,9 @@ textarea.input { resize: none; min-height: 80px; }
 
   </div>
 
-  <!-- レシピタブ -->
+  <!-- レシピ一覧タブ -->
   <div id="tab-recipes" style="display:none">
-    <h1>📖 レシピ登録</h1>
+    <h1>📖 レシピ</h1>
 
     <!-- 表示切り替え -->
     <div style="display:flex;gap:6px;margin-bottom:12px">
@@ -195,14 +195,18 @@ textarea.input { resize: none; min-height: 80px; }
 
     <!-- 一覧ビュー -->
     <div id="recipe-view-list">
-      <!-- 検索 -->
       <div style="display:flex;gap:8px;margin-bottom:8px">
         <input class="input" id="recipe-search" placeholder="🔍 料理名で検索..." style="flex:1;padding:10px 14px" oninput="renderRecipes()">
       </div>
-      <!-- カテゴリフィルター -->
       <div id="cat-filter-bar" style="margin-bottom:6px"></div>
-      <!-- タグフィルター -->
       <div id="spec-filter-bar" style="margin-bottom:10px"></div>
+      <div id="recipe-list"></div>
+    </div>
+  </div>
+
+  <!-- レシピ登録タブ -->
+  <div id="tab-add-recipe" style="display:none">
+    <h1>➕ レシピ登録</h1>
 
     <!-- ネット検索 -->
     <div class="card" style="border:2px dashed var(--green);background:rgba(74,158,107,0.05);margin-bottom:12px">
@@ -211,12 +215,12 @@ textarea.input { resize: none; min-height: 80px; }
         <input class="input" id="search-ing-input" placeholder="食材を入力（例：鶏肉、じゃがいも）" style="flex:1">
         <button class="btn btn-small" style="background:var(--green);color:#fff;border:none" onclick="searchOnlineRecipes()">検索</button>
       </div>
-      <div style="font-size:12px;color:var(--text2)">今ある食材タブの食材で検索する場合は空欄のままで</div>
+      <div style="font-size:12px;color:var(--text2)">空欄のままで食材タブの食材で検索</div>
       <div id="search-results" style="margin-top:12px"></div>
     </div>
 
     <!-- 写真から読み込み -->
-    <div class="card" style="border:2px dashed var(--accent);background:rgba(224,123,57,0.05)">
+    <div class="card" style="border:2px dashed var(--accent);background:rgba(224,123,57,0.05);margin-bottom:12px">
       <div class="section-title">📷 写真からレシピを読み込む</div>
       <input type="file" id="recipe-photo-input" accept="image/*" capture="environment" style="display:none" onchange="readRecipePhoto(event)">
       <button class="btn btn-primary" style="background:var(--accent);margin-top:0" onclick="document.getElementById('recipe-photo-input').click()">
@@ -228,17 +232,16 @@ textarea.input { resize: none; min-height: 80px; }
       </div>
     </div>
 
+    <!-- 手動入力 -->
     <div class="card">
       <div class="section-title">手動で入力</div>
       <input class="input" id="recipe-name" placeholder="料理名" style="margin-bottom:8px">
-      <input class="input" id="recipe-ingredients" placeholder="材料（カンマ区切り）例：鶏肉,玉ねぎ,醤油" style="margin-bottom:8px">
+      <input class="input" id="recipe-ingredients" placeholder="材料（カンマ区切り）例：鶏肉,玉ねぎ" style="margin-bottom:8px">
       <textarea class="input" id="recipe-steps" placeholder="作り方（省略可）" style="margin-bottom:8px"></textarea>
       <div class="section-title" style="margin-bottom:6px">カテゴリ</div>
       <div id="recipe-cat-select" style="margin-bottom:8px"></div>
       <button class="btn btn-primary" onclick="saveRecipe()">レシピを保存</button>
     </div>
-    <div id="recipe-list"></div>
-    </div><!-- /recipe-view-list -->
   </div>
 
   <!-- 献立タブ -->
@@ -280,6 +283,9 @@ textarea.input { resize: none; min-height: 80px; }
   <button class="nav-btn" id="btn-recipes" onclick="showTab('recipes')">
     <span class="nav-icon">📖</span>レシピ
   </button>
+  <button class="nav-btn" id="btn-add-recipe" onclick="showTab('add-recipe')">
+    <span class="nav-icon">➕</span>登録
+  </button>
   <button class="nav-btn" id="btn-plan" onclick="showTab('plan')">
     <span class="nav-icon">🍱</span>献立
   </button>
@@ -289,7 +295,7 @@ textarea.input { resize: none; min-height: 80px; }
 </div>
 
 <script>
-const TABS = ['ingredients','recipes','plan','shopping']
+const TABS = ['ingredients','recipes','add-recipe','plan','shopping']
 let ingredients = JSON.parse(localStorage.getItem('ingredients') || '[]')
 let recipes = JSON.parse(localStorage.getItem('recipes') || '[]')
 let shoppingList = JSON.parse(localStorage.getItem('shoppingList') || '[]')
@@ -309,7 +315,8 @@ function showTab(tab) {
     document.getElementById('tab-' + t).style.display = t === tab ? 'block' : 'none'
     document.getElementById('btn-' + t).classList.toggle('active', t === tab)
   })
-  if (tab === 'recipes') { initCatSelect(); renderRecipes() }
+  if (tab === 'recipes') { renderRecipes() }
+  if (tab === 'add-recipe') { initCatSelect() }
   if (tab === 'shopping') renderShopping()
 }
 
@@ -360,8 +367,8 @@ function saveRecipe() {
   document.getElementById('recipe-ingredients').value = ''
   document.getElementById('recipe-steps').value = ''
   initCatSelect()
-  renderRecipes()
   notify('レシピを保存しました！')
+  showTab('recipes')
 }
 
 function deleteRecipe(id) {
