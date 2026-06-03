@@ -302,7 +302,7 @@ function renderIngredientView() {
   // 食材タグ一覧
   document.getElementById('ingredient-filter').innerHTML = sorted.map(([ing, rs]) =>
     `<span class="tag ${selectedIngredient === ing ? 'active' : ''}" onclick="filterByIngredient('${ing.replace(/'/g,"\\'")}')">
-      ${ing} <span style="opacity:0.7">${rs.length}</span>
+      ${ing}${rs.length > 1 ? ` <span style="opacity:0.7">${rs.length}</span>` : ''}
     </span>`
   ).join('')
 
