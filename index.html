@@ -595,9 +595,16 @@ function renderRecipes() {
   if (selectedTags.size > 0) {
     filtered = filtered.filter(r => [...selectedTags].every(t => (r.tags || []).includes(t)))
   }
-  // テキスト検索
+  // テキスト検索（料理名・材料・カテゴリ・タグ）
   if (searchQ) {
-    filtered = filtered.filter(r => r.name.toLowerCase().includes(searchQ) || r.ingredients.toLowerCase().includes(searchQ))
+    filtered = filtered.filter(r => {
+      const cats = r.categories?.length ? r.categories : (r.category ? [r.category] : [])
+      const tags = r.tags || []
+      return r.name.toLowerCase().includes(searchQ)
+        || r.ingredients.toLowerCase().includes(searchQ)
+        || cats.some(c => c.includes(searchQ))
+        || tags.some(t => t.includes(searchQ))
+    })
   }
   if (recipes.length === 0) {
     el.innerHTML = '<div class="loading">レシピがまだありません</div>'
