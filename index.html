@@ -297,9 +297,10 @@ textarea.input { resize: none; min-height: 80px; }
       <div class="section-title" style="margin-bottom:8px">👨‍🍳 作り方</div>
       <div id="detail-steps" style="font-size:14px;line-height:1.8;color:var(--text)"></div>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-      <button class="btn" style="background:var(--surface2);border:1px solid var(--border);margin-top:0" onclick="closeDetailModal()">閉じる</button>
-      <button class="btn btn-primary" style="margin-top:0" id="detail-edit-btn">✏️ 編集</button>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+      <button class="btn" style="background:var(--surface2);border:1px solid var(--border);margin-top:0;font-size:13px" onclick="closeDetailModal()">閉じる</button>
+      <button class="btn btn-primary" style="margin-top:0;font-size:13px" id="detail-edit-btn">✏️ 編集</button>
+      <button class="btn" style="background:transparent;border:1px solid var(--red);color:var(--red);margin-top:0;font-size:13px" id="detail-delete-btn">🗑️ 削除</button>
     </div>
   </div>
 </div>
@@ -690,6 +691,11 @@ function openDetailModal(id) {
 
   // 編集ボタン
   document.getElementById('detail-edit-btn').onclick = () => { closeDetailModal(); openEditModal(id) }
+  document.getElementById('detail-delete-btn').onclick = () => {
+    if (!confirm(`「${r.name}」を削除しますか？`)) return
+    deleteRecipe(id)
+    closeDetailModal()
+  }
 
   document.getElementById('detail-modal').classList.add('show')
 }
