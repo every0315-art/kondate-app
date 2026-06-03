@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="献立アプリ">
+<title>献立アプリ</title>
+<style>
+:root {
+  --bg: #f8f5f0;
+  --surface: #fff;
+  --surface2: #f2ede6;
+  --accent: #e07b39;
+  --accent2: #c05f1f;
+  --green: #4a9e6b;
+  --text: #2d2416;
+  --text2: #8a7560;
+  --border: #e0d5c5;
+  --red: #e05050;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+.app { max-width: 480px; margin: 0 auto; padding: 16px; padding-bottom: 80px; }
+h1 { font-size: 22px; font-weight: 800; padding: 16px 0 20px; }
+
+/* Tabs */
+.bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface); border-top: 1px solid var(--border); display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; padding: 8px 8px 24px; gap: 4px; z-index: 50; }
+.nav-btn { padding: 8px 4px; border: none; border-radius: 10px; background: transparent; color: var(--text2); font-size: 12px; cursor: pointer; transition: all 0.2s; font-weight: 500; }
+.nav-btn.active { background: var(--accent); color: #fff; font-weight: 700; }
+
+/* Cards */
+.card { background: var(--surface); border-radius: 14px; padding: 16px; border: 1px solid var(--border); margin-bottom: 12px; }
+.section-title { font-size: 12px; color: var(--text2); font-weight: 700; letter-spacing: 0.5px; margin-bottom: 10px; text-transform: uppercase; }
+
+/* Input */
+.input { width: 100%; padding: 12px 14px; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 15px; outline: none; }
+.input:focus { border-color: var(--accent); }
+textarea.input { resize: none; min-height: 80px; }
+.btn { padding: 12px 20px; border: none; border-radius: 10px; font-size: 15px; font-weight: 700; cursor: pointer; transition: opacity 0.2s; }
+.btn:hover { opacity: 0.85; }
+.btn-primary { background: var(--accent); color: #fff; width: 100%; margin-top: 8px; }
+.btn-small { background: var(--surface2); color: var(--text); font-size: 13px; padding: 6px 12px; border: 1px solid var(--border); }
+.btn-danger { background: transparent; color: var(--red); border: 1px solid var(--red); font-size: 12px; padding: 4px 10px; }
+.btn-green { background: var(--green); color: #fff; }
+
+/* Tag */
+.tag { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; background: var(--surface2); color: var(--text2); margin: 2px; cursor: pointer; border: 1px solid var(--border); }
+.tag.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.tag-remove { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+/* Recipe */
+.recipe-item { background: var(--surface); border-radius: 12px; padding: 14px; border: 1px solid var(--border); margin-bottom: 8px; }
+.recipe-name { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+.recipe-meta { font-size: 12px; color: var(--text2); }
+.recipe-actions { display: flex; gap: 8px; margin-top: 10px; }
+
+/* Meal plan */
+.meal-item { border-radius: 12px; padding: 14px; border: 1px solid var(--border); margin-bottom: 8px; background: var(--surface); }
+.meal-day { font-size: 12px; color: var(--accent); font-weight: 700; margin-bottom: 4px; }
+.meal-name { font-size: 15px; font-weight: 700; }
+.meal-note { font-size: 12px; color: var(--text2); margin-top: 4px; }
+
+/* Shopping */
+.shop-item { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.shop-check { width: 22px; height: 22px; border-radius: 6px; border: 2px solid var(--border); cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.shop-check.checked { background: var(--green); border-color: var(--green); color: #fff; }
+.shop-name { font-size: 15px; flex: 1; }
+.shop-name.done { text-decoration: line-through; color: var(--text2); }
+
+/* Loading */
+.loading { text-align: center; color: var(--text2); padding: 32px; font-size: 14px; }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 700; background: var(--green); color: #fff; margin-left: 6px; }
+
+/* Notification */
+.notif { position: fixed; top: 12px; left: 12px; right: 12px; max-width: 480px; margin: 0 auto; background: var(--text); color: #fff; padding: 12px 16px; border-radius: 12px; font-size: 13px; font-weight: 500; z-index: 200; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+.notif.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <div class="notif" id="notif"></div>
+
+  <!-- 食材タブ -->
+  <div id="tab-ingredients">
+    <h1>🥕 食材管理</h1>
+    <div class="card">
+      <div class="section-title">今ある食材を追加</div>
+      <div style="display:flex;gap:8px">
+        <input class="input" id="ing-input" placeholder="例：鶏肉、玉ねぎ..." style="flex:1">
+        <button class="btn btn-small" onclick="addIngredient()">追加</button>
+      </div>
+      <div id="ing-tags" style="margin-top:10px;"></div>
+    </div>
+    <button class="btn btn-primary btn-green" onclick="showTab('plan');generatePlan()" style="margin-top:4px;">
+      🍳 この食材で献立を作る
+    </button>
+  </div>
+
+  <!-- レシピタブ -->
+  <div id="tab-recipes" style="display:none">
+    <h1>📖 レシピ登録</h1>
+    <div class="card">
+      <div class="section-title">新しいレシピ</div>
+      <input class="input" id="recipe-name" placeholder="料理名" style="margin-bottom:8px">
+      <input class="input" id="recipe-ingredients" placeholder="材料（カンマ区切り）例：鶏肉,玉ねぎ,醤油" style="margin-bottom:8px">
+      <textarea class="input" id="recipe-steps" placeholder="作り方（省略可）"></textarea>
+      <button class="btn btn-primary" onclick="saveRecipe()">レシピを保存</button>
+    </div>
+    <div id="recipe-list"></div>
+  </div>
+
+  <!-- 献立タブ -->
+  <div id="tab-plan" style="display:none">
+    <h1>🍱 献立提案</h1>
+    <div id="plan-content"><div class="loading">「食材で献立を作る」ボタンを押してください</div></div>
+  </div>
+
+  <!-- 買い物タブ -->
+  <div id="tab-shopping" style="display:none">
+    <h1>🛒 買い物リスト</h1>
+    <div id="shopping-content"><div class="loading">献立を作成すると買い物リストが生成されます</div></div>
+  </div>
+</div>
+
+<!-- Bottom Nav -->
+<div class="bottom-nav">
+  <button class="nav-btn active" id="btn-ingredients" onclick="showTab('ingredients')">🥕<br>食材</button>
+  <button class="nav-btn" id="btn-recipes" onclick="showTab('recipes')">📖<br>レシピ</button>
+  <button class="nav-btn" id="btn-plan" onclick="showTab('plan')">🍱<br>献立</button>
+  <button class="nav-btn" id="btn-shopping" onclick="showTab('shopping')">🛒<br>買い物</button>
+</div>
+
+<script>
+const TABS = ['ingredients','recipes','plan','shopping']
+let ingredients = JSON.parse(localStorage.getItem('ingredients') || '[]')
+let recipes = JSON.parse(localStorage.getItem('recipes') || '[]')
+let shoppingList = JSON.parse(localStorage.getItem('shoppingList') || '[]')
+let apiKey = localStorage.getItem('kondate_api_key') || ''
+
+// API Key setup
+function getApiKey() {
+  if (apiKey) return apiKey
+  const key = prompt('AnthropicのAPIキーを入力してください（sk-ant-...）:')
+  if (key && key.startsWith('sk-')) {
+    apiKey = key
+    localStorage.setItem('kondate_api_key', key)
+    return key
+  }
+  return null
+}
+
+function showTab(tab) {
+  TABS.forEach(t => {
+    document.getElementById('tab-' + t).style.display = t === tab ? 'block' : 'none'
+    document.getElementById('btn-' + t).classList.toggle('active', t === tab)
+  })
+  if (tab === 'recipes') renderRecipes()
+  if (tab === 'shopping') renderShopping()
+}
+
+function notify(msg) {
+  const el = document.getElementById('notif')
+  el.textContent = msg
+  el.classList.add('show')
+  setTimeout(() => el.classList.remove('show'), 2500)
+}
+
+// 食材管理
+function renderIngredients() {
+  const el = document.getElementById('ing-tags')
+  el.innerHTML = ingredients.map((ing, i) => 
+    `<span class="tag tag-remove" onclick="removeIngredient(${i})">✕ ${ing}</span>`
+  ).join('')
+}
+
+function addIngredient() {
+  const input = document.getElementById('ing-input')
+  const vals = input.value.split(/[,、，\s]+/).map(v => v.trim()).filter(Boolean)
+  vals.forEach(v => { if (!ingredients.includes(v)) ingredients.push(v) })
+  localStorage.setItem('ingredients', JSON.stringify(ingredients))
+  input.value = ''
+  renderIngredients()
+}
+
+function removeIngredient(i) {
+  ingredients.splice(i, 1)
+  localStorage.setItem('ingredients', JSON.stringify(ingredients))
+  renderIngredients()
+}
+
+document.getElementById('ing-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') addIngredient()
+})
+
+// レシピ管理
+function saveRecipe() {
+  const name = document.getElementById('recipe-name').value.trim()
+  const ings = document.getElementById('recipe-ingredients').value.trim()
+  const steps = document.getElementById('recipe-steps').value.trim()
+  if (!name || !ings) { notify('料理名と材料は必須です'); return }
+  recipes.push({ id: Date.now(), name, ingredients: ings, steps })
+  localStorage.setItem('recipes', JSON.stringify(recipes))
+  document.getElementById('recipe-name').value = ''
+  document.getElementById('recipe-ingredients').value = ''
+  document.getElementById('recipe-steps').value = ''
+  renderRecipes()
+  notify('レシピを保存しました！')
+}
+
+function deleteRecipe(id) {
+  recipes = recipes.filter(r => r.id !== id)
+  localStorage.setItem('recipes', JSON.stringify(recipes))
+  renderRecipes()
+}
+
+function renderRecipes() {
+  const el = document.getElementById('recipe-list')
+  if (recipes.length === 0) {
+    el.innerHTML = '<div class="loading">レシピがまだありません</div>'
+    return
+  }
+  el.innerHTML = recipes.map(r => `
+    <div class="recipe-item">
+      <div class="recipe-name">${r.name}</div>
+      <div class="recipe-meta">材料: ${r.ingredients}</div>
+      ${r.steps ? `<div class="recipe-meta" style="margin-top:4px">${r.steps.slice(0,60)}${r.steps.length>60?'...':''}</div>` : ''}
+      <div class="recipe-actions">
+        <button class="btn btn-danger" onclick="deleteRecipe(${r.id})">削除</button>
+      </div>
+    </div>
+  `).join('')
+}
+
+// 献立生成
+async function generatePlan() {
+  const key = getApiKey()
+  if (!key) return
+
+  const planEl = document.getElementById('plan-content')
+  planEl.innerHTML = '<div class="loading">🤖 AIが献立を考えています...</div>'
+
+  const recipeList = recipes.length > 0
+    ? `\n登録レシピ:\n${recipes.map(r => `・${r.name}（材料: ${r.ingredients}）`).join('\n')}`
+    : ''
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 1500,
+        system: `あなたは家庭料理の献立アドバイザーです。ユーザーの食材と登録レシピを参考にして、3〜5日分の献立（朝・昼・夜）を提案してください。
+以下のJSON形式のみで返答してください。前置きや説明は不要です。
+[{"day":"1日目","meals":{"朝":"料理名","昼":"料理名","夜":"料理名"},"note":"一言コメント","missing":["不足食材1","不足食材2"]}]`,
+        messages: [{
+          role: 'user',
+          content: `手持ち食材: ${ingredients.join('、') || 'なし'}${recipeList}\n\n3〜5日分の献立をJSON形式で提案してください。登録レシピを優先的に使ってください。`
+        }]
+      })
+    })
+
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error?.message || 'APIエラー')
+
+    const text = data.content?.[0]?.text || ''
+    const match = text.match(/\[[\s\S]*\]/)
+    if (!match) throw new Error('レスポンスの形式が不正です')
+
+    const plan = JSON.parse(match[0])
+    renderPlan(plan)
+
+    // 買い物リスト生成
+    const allMissing = [...new Set(plan.flatMap(p => p.missing || []))]
+    shoppingList = allMissing.map(item => ({ name: item, checked: false }))
+    localStorage.setItem('shoppingList', JSON.stringify(shoppingList))
+    notify('献立と買い物リストを生成しました！')
+
+  } catch (e) {
+    planEl.innerHTML = `<div class="loading" style="color:var(--red)">エラー: ${e.message}</div>`
+  }
+}
+
+function renderPlan(plan) {
+  const el = document.getElementById('plan-content')
+  el.innerHTML = `
+    <button class="btn btn-primary" onclick="generatePlan()" style="margin-bottom:14px">🔄 再生成</button>
+    ${plan.map(p => `
+      <div class="meal-item">
+        <div class="meal-day">${p.day}</div>
+        <div style="display:grid;gap:4px;margin:6px 0">
+          <div><span style="font-size:11px;color:var(--text2)">朝</span> <span class="meal-name" style="font-size:14px">${p.meals.朝||'—'}</span></div>
+          <div><span style="font-size:11px;color:var(--text2)">昼</span> <span class="meal-name" style="font-size:14px">${p.meals.昼||'—'}</span></div>
+          <div><span style="font-size:11px;color:var(--text2)">夜</span> <span class="meal-name" style="font-size:14px">${p.meals.夜||'—'}</span></div>
+        </div>
+        ${p.note ? `<div class="meal-note">💬 ${p.note}</div>` : ''}
+        ${p.missing?.length ? `<div class="meal-note" style="color:var(--accent)">🛒 必要: ${p.missing.join('、')}</div>` : ''}
+      </div>
+    `).join('')}
+  `
+}
+
+// 買い物リスト
+function renderShopping() {
+  const el = document.getElementById('shopping-content')
+  if (shoppingList.length === 0) {
+    el.innerHTML = '<div class="loading">献立を作成すると買い物リストが生成されます</div>'
+    return
+  }
+  const done = shoppingList.filter(s => s.checked).length
+  el.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <span style="font-size:13px;color:var(--text2)">${done}/${shoppingList.length} 完了</span>
+      <button class="btn btn-small" onclick="clearChecked()">チェック済みを削除</button>
+    </div>
+    <div class="card" style="padding:0 16px">
+      ${shoppingList.map((s, i) => `
+        <div class="shop-item">
+          <div class="shop-check ${s.checked ? 'checked' : ''}" onclick="toggleShop(${i})">
+            ${s.checked ? '✓' : ''}
+          </div>
+          <span class="shop-name ${s.checked ? 'done' : ''}">${s.name}</span>
+        </div>
+      `).join('')}
+    </div>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <input class="input" id="shop-input" placeholder="追加する食材..." style="flex:1">
+      <button class="btn btn-small" onclick="addShopItem()">追加</button>
+    </div>
+  `
+}
+
+function toggleShop(i) {
+  shoppingList[i].checked = !shoppingList[i].checked
+  localStorage.setItem('shoppingList', JSON.stringify(shoppingList))
+  renderShopping()
+}
+
+function clearChecked() {
+  shoppingList = shoppingList.filter(s => !s.checked)
+  localStorage.setItem('shoppingList', JSON.stringify(shoppingList))
+  renderShopping()
+}
+
+function addShopItem() {
+  const input = document.getElementById('shop-input')
+  const val = input.value.trim()
+  if (val) {
+    shoppingList.push({ name: val, checked: false })
+    localStorage.setItem('shoppingList', JSON.stringify(shoppingList))
+    input.value = ''
+    renderShopping()
+  }
+}
+
+// 初期化
+renderIngredients()
+</script>
+</body>
+</html>
