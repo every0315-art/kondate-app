@@ -384,9 +384,9 @@ function saveRecipe() {
   const name = document.getElementById('recipe-name').value.trim()
   const ings = document.getElementById('recipe-ingredients').value.trim()
   const steps = document.getElementById('recipe-steps').value.trim()
-  const category = document.getElementById('recipe-cat-select').dataset.selected || ''
+  const categories = getSelectedCats('recipe-cat-select')
   if (!name || !ings) { notify('料理名と材料は必須です'); return }
-  recipes.push({ id: Date.now(), name, ingredients: ings, steps, category })
+  recipes.push({ id: Date.now(), name, ingredients: ings, steps, categories })
   localStorage.setItem('recipes', JSON.stringify(recipes))
   document.getElementById('recipe-name').value = ''
   document.getElementById('recipe-ingredients').value = ''
@@ -410,24 +410,26 @@ let selectedTags = new Set()
 let recipeView = 'list'
 let selectedIngredient = null
 
-function initCatSelect() {
-  document.getElementById('recipe-cat-select').innerHTML =
-    ['未選択', ...CATEGORIES].map(c =>
-      `<span class="cat-tag cat-${c === '未選択' ? 'その他' : c} ${c === '未選択' ? 'active' : ''}" id="cat-sel-${c}" onclick="selectCat('${c}')">${c}</span>`
-    ).join('')
+function initCatSelect(selectedCats = []) {
+  const el = document.getElementById('recipe-cat-select')
+  el.innerHTML = CATEGORIES.map(c =>
+    `<span class="cat-tag cat-${c} ${selectedCats.includes(c) ? 'active' : ''}" onclick="toggleCatSelect('${c}', this)">${c}</span>`
+  ).join('')
 }
 
-function selectCat(c) {
-  document.querySelectorAll('#recipe-cat-select .cat-tag').forEach(el => el.classList.remove('active'))
-  document.getElementById('cat-sel-' + c).classList.add('active')
-  document.getElementById('recipe-cat-select').dataset.selected = c === '未選択' ? '' : c
+function toggleCatSelect(c, el) {
+  el.classList.toggle('active')
+}
+
+function getSelectedCats(containerId) {
+  return [...document.querySelectorAll(`#${containerId} .cat-tag.active`)].map(el => el.textContent.trim())
 }
 
 function renderCatFilter() {
   const counts = { すべて: recipes.length }
   recipes.forEach(r => {
-    const c = r.category || 'その他'
-    counts[c] = (counts[c] || 0) + 1
+    const cats = r.categories?.length ? r.categories : (r.category ? [r.category] : ['その他'])
+    cats.forEach(c => { counts[c] = (counts[c] || 0) + 1 })
   })
   document.getElementById('cat-filter-bar').innerHTML =
     ['すべて', ...CATEGORIES].filter(c => c === 'すべて' || counts[c]).map(c =>
@@ -474,7 +476,7 @@ function setRecipeView(view) {
 function renderIngredientView() {
   // 全レシピから食材を抽出してユニーク化
   const allIngs = {}
-  const SEASONINGS = new Set(['醤油','塩','砂糖','みりん','酒','酢','味噌','ごま油','オリーブオイル','油','バター','小麦粉','片栗粉','だし','だし汁','水','お湯','コショウ','胡椒','塩こしょう','塩胡椒','ケチャップ','マヨネーズ','ソース','みそ','豆板醤','オイスターソース','ナンプラー','コンソメ','鶏ガラ','牛乳','生クリーム','はちみつ','蜂蜜','ポン酢','めんつゆ','ドレッシング','カレー粉','マスタード','にんにく','生姜','しょうが'])
+  const SEASONINGS = new Set(['醤油','しょうゆ','塩','砂糖','みりん','本みりん','酒','料理酒','酢','米酢','味噌','みそ','ごま油','オリーブオイル','サラダ油','油','植物油','バター','マーガリン','小麦粉','薄力粉','強力粉','片栗粉','コーンスターチ','だし','だし汁','和風だし','水','お湯','湯','コショウ','胡椒','黒胡椒','白胡椒','塩こしょう','塩胡椒','ケチャップ','トマトケチャップ','マヨネーズ','ソース','ウスターソース','中濃ソース','豆板醤','オイスターソース','ナンプラー','コンソメ','鶏ガラスープの素','中華だし','牛乳','生クリーม','はちみつ','蜂蜜','ポン酢','めんつゆ','白だし','ドレッシング','カレー粉','マスタード','にんにく','ニンニク','生姜','しょうが','ショウガ','鷹の爪','唐辛子','七味','山椒','わさび','からし','黒糖','きび砂糖','塩麹','甜麺醤','豆鼓醤','XO醤','チリソース','スイートチリソース'])
   recipes.forEach(r => {
     r.ingredients.split(/[,、，]+/).map(i =>
       i.trim().replace(/[\d０-９]+\s*(?:g|ml|cc|kg|L|個|枚|本|袋|缶|パック|カップ|大さじ|小さじ|少々|適量|少量|適宜)[^\S]*/gi, '').trim()
@@ -509,16 +511,16 @@ function renderIngredientView() {
   const matched = allIngs[selectedIngredient] || []
   document.getElementById('ingredient-recipe-list').innerHTML = `
     <div class="section-title" style="margin-bottom:8px">「${selectedIngredient}」を使うレシピ（${matched.length}件）</div>
-    ${matched.map(r => `
-      <div class="recipe-item">
-        <div class="recipe-name">${r.name}</div>
-        <div class="recipe-meta">材料: ${r.ingredients}</div>
-        ${r.steps ? `<div class="recipe-meta" style="margin-top:4px">${r.steps.slice(0,60)}${r.steps.length>60?'...':''}</div>` : ''}
-        <div class="recipe-actions">
-          <button class="btn btn-danger" onclick="deleteRecipe(${r.id});renderIngredientView()">削除</button>
+    ${matched.map(r => {
+      const cats = r.categories?.length ? r.categories : (r.category ? [r.category] : [])
+      return `<div class="recipe-item" style="cursor:pointer" onclick="openDetailModal(${r.id})">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px">
+          <span class="recipe-name">${r.name}</span>
+          ${cats.map(c => `<span class="cat-tag cat-${c}">${c}</span>`).join('')}
         </div>
-      </div>
-    `).join('')}
+        <div class="recipe-meta">材料: ${r.ingredients.slice(0,50)}${r.ingredients.length>50?'...':''}</div>
+      </div>`
+    }).join('')}
   `
 }
 
@@ -585,7 +587,10 @@ function renderRecipes() {
   const el = document.getElementById('recipe-list')
   let filtered = selectedCategory === 'すべて'
     ? recipes
-    : recipes.filter(r => (r.category || 'その他') === selectedCategory)
+    : recipes.filter(r => {
+        const cats = r.categories?.length ? r.categories : (r.category ? [r.category] : ['その他'])
+        return cats.includes(selectedCategory)
+      })
   // タグフィルター（選択タグを全て持つもの）
   if (selectedTags.size > 0) {
     filtered = filtered.filter(r => [...selectedTags].every(t => (r.tags || []).includes(t)))
@@ -612,7 +617,7 @@ function renderRecipes() {
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
           <span class="recipe-name">${r.name}</span>
-          ${r.category ? `<span class="cat-tag cat-${r.category}">${r.category}</span>` : ''}
+          ${(r.categories?.length ? r.categories : (r.category ? [r.category] : [])).map(c => `<span class="cat-tag cat-${c}">${c}</span>`).join('')}
           ${specTags.map(t => `<span class="spec-tag spec-${t} active" style="font-size:10px;padding:1px 7px">${t}</span>`).join('')}
         </div>
         <button class="fav-btn" onclick="event.stopPropagation();toggleFav(${r.id})">${isFav ? '⭐' : '☆'}</button>
@@ -634,8 +639,9 @@ function openDetailModal(id) {
   document.getElementById('detail-fav-btn').onclick = () => { toggleFav(id); openDetailModal(id) }
 
   // タグ表示
+  const cats = r.categories?.length ? r.categories : (r.category ? [r.category] : [])
   const tagHtml = [
-    r.category ? `<span class="cat-tag cat-${r.category}">${r.category}</span>` : '',
+    ...cats.map(c => `<span class="cat-tag cat-${c}">${c}</span>`),
     ...allTags.filter(t => t !== 'お気に入り').map(t => `<span class="spec-tag spec-${t} active">${t}</span>`)
   ].join('')
   document.getElementById('detail-tags').innerHTML = tagHtml
@@ -681,11 +687,10 @@ function openEditModal(id) {
   document.getElementById('edit-name').value = r.name
   document.getElementById('edit-ingredients').value = r.ingredients
   document.getElementById('edit-steps').value = r.steps || ''
-  // カテゴリ
-  const catEl = document.getElementById('edit-cat-select')
-  catEl.dataset.selected = r.category || ''
-  catEl.innerHTML = ['未選択', ...CATEGORIES].map(c =>
-    `<span class="cat-tag cat-${c === '未選択' ? 'その他' : c} ${(r.category || '') === (c === '未選択' ? '' : c) ? 'active' : ''}" onclick="editSelectCat('${c}')">${c}</span>`
+  // カテゴリ（複数選択）
+  const curCats = r.categories?.length ? r.categories : (r.category ? [r.category] : [])
+  document.getElementById('edit-cat-select').innerHTML = CATEGORIES.map(c =>
+    `<span class="cat-tag cat-${c} ${curCats.includes(c) ? 'active' : ''}" onclick="this.classList.toggle('active')">${c}</span>`
   ).join('')
   // タグ
   const curTags = r.tags || []
@@ -713,7 +718,8 @@ function saveEditRecipe() {
   r.name = document.getElementById('edit-name').value.trim()
   r.ingredients = document.getElementById('edit-ingredients').value.trim()
   r.steps = document.getElementById('edit-steps').value.trim()
-  r.category = document.getElementById('edit-cat-select').dataset.selected || ''
+  r.categories = getSelectedCats('edit-cat-select')
+  r.category = r.categories[0] || ''
   r.tags = [...document.querySelectorAll('#edit-spec-tags .spec-tag.active')].map(el => el.textContent)
   localStorage.setItem('recipes', JSON.stringify(recipes))
   closeEditModal()
