@@ -258,7 +258,8 @@ textarea.input { resize: none; min-height: 80px; }
     <div class="card">
       <div class="section-title">手動で入力</div>
       <input class="input" id="recipe-name" placeholder="料理名" style="margin-bottom:8px">
-      <input class="input" id="recipe-ingredients" placeholder="材料（カンマ区切り）例：鶏肉,玉ねぎ" style="margin-bottom:8px">
+      <input class="input" id="recipe-servings" placeholder="何人分（例：2人分）" style="margin-bottom:8px">
+      <input class="input" id="recipe-ingredients" placeholder="材料（カンマ区切り）例：鶏肉 300g,玉ねぎ 1個" style="margin-bottom:8px">
       <textarea class="input" id="recipe-steps" placeholder="作り方（省略可）" style="margin-bottom:8px"></textarea>
       <div class="section-title" style="margin-bottom:6px">カテゴリ（複数選択可）</div>
       <div id="recipe-cat-select" class="cat-select" style="margin-bottom:8px"></div>
@@ -310,6 +311,7 @@ textarea.input { resize: none; min-height: 80px; }
   <div class="modal">
     <div class="modal-title">✏️ レシピを編集</div>
     <input class="input" id="edit-name" placeholder="料理名" style="margin-bottom:8px">
+    <input class="input" id="edit-servings" placeholder="何人分（例：2人分）" style="margin-bottom:8px">
     <input class="input" id="edit-ingredients" placeholder="材料（カンマ区切り）" style="margin-bottom:8px">
     <textarea class="input" id="edit-steps" placeholder="作り方（省略可）" style="margin-bottom:8px"></textarea>
     <div class="section-title" style="margin-bottom:6px">カテゴリ（複数選択可）</div>
@@ -407,11 +409,13 @@ function saveRecipe() {
   const name = document.getElementById('recipe-name').value.trim()
   const ings = document.getElementById('recipe-ingredients').value.trim()
   const steps = document.getElementById('recipe-steps').value.trim()
+  const servings = document.getElementById('recipe-servings').value.trim()
   const categories = getSelectedCats('recipe-cat-select')
   if (!name || !ings) { notify('料理名と材料は必須です'); return }
-  recipes.push({ id: Date.now(), name, ingredients: ings, steps, categories })
+  recipes.push({ id: Date.now(), name, servings, ingredients: ings, steps, categories })
   localStorage.setItem('recipes', JSON.stringify(recipes))
   document.getElementById('recipe-name').value = ''
+  document.getElementById('recipe-servings').value = ''
   document.getElementById('recipe-ingredients').value = ''
   document.getElementById('recipe-steps').value = ''
   initCatSelect()
@@ -572,9 +576,12 @@ async function searchOnlineRecipes() {
       <div class="section-title" style="margin-bottom:8px">「${searchIngs.slice(0,3).join('・')}」のレシピ（${found.length}件）</div>
       ${found.map((r, i) => `
         <div class="recipe-item" style="margin-bottom:8px">
-          <div class="recipe-name">${r.name}</div>
-          <div class="recipe-meta">材料: ${r.ingredients}</div>
-          ${r.steps ? `<div class="recipe-meta" style="margin-top:4px">${r.steps}</div>` : ''}
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+            <span class="recipe-name">${r.name}</span>
+            ${r.servings ? `<span style="font-size:12px;color:var(--accent);font-weight:700">${r.servings}</span>` : ''}
+          </div>
+          <div class="recipe-meta" style="margin-bottom:4px">🧂 ${r.ingredients}</div>
+          ${r.steps ? `<div class="recipe-meta">${r.steps}</div>` : ''}
           ${r.source ? `<div class="recipe-meta" style="margin-top:4px;color:var(--green)">📌 ${r.source}</div>` : ''}
           <div class="recipe-actions" style="margin-top:8px">
             <button class="btn btn-small" style="background:var(--green);color:#fff;border:none" onclick="addFoundRecipe(${i})">+ 登録する</button>
@@ -592,7 +599,7 @@ async function searchOnlineRecipes() {
 function addFoundRecipe(i) {
   const r = window._foundRecipes?.[i]
   if (!r) return
-  recipes.push({ id: Date.now(), name: r.name, ingredients: r.ingredients, steps: r.steps || '', category: r.category || '' })
+  recipes.push({ id: Date.now(), name: r.name, servings: r.servings || '', ingredients: r.ingredients, steps: r.steps || '', categories: [] })
   localStorage.setItem('recipes', JSON.stringify(recipes))
   notify(`「${r.name}」をレシピに登録しました！`)
   renderRecipes()
@@ -664,7 +671,7 @@ function openDetailModal(id) {
   const isFav = r.tags?.includes('お気に入り')
   const allTags = r.tags || []
 
-  document.getElementById('detail-name').textContent = r.name
+  document.getElementById('detail-name').textContent = r.name + (r.servings ? `　${r.servings}` : '')
   document.getElementById('detail-fav-btn').textContent = isFav ? '⭐' : '☆'
   document.getElementById('detail-fav-btn').onclick = () => { toggleFav(id); openDetailModal(id) }
 
@@ -720,6 +727,7 @@ function openEditModal(id) {
   if (!r) return
   editingId = id
   document.getElementById('edit-name').value = r.name
+  document.getElementById('edit-servings').value = r.servings || ''
   document.getElementById('edit-ingredients').value = r.ingredients
   document.getElementById('edit-steps').value = r.steps || ''
   // カテゴリ（複数選択）
@@ -751,6 +759,7 @@ function saveEditRecipe() {
   const r = recipes.find(r => r.id === editingId)
   if (!r) return
   r.name = document.getElementById('edit-name').value.trim()
+  r.servings = document.getElementById('edit-servings').value.trim()
   r.ingredients = document.getElementById('edit-ingredients').value.trim()
   r.steps = document.getElementById('edit-steps').value.trim()
   r.categories = getSelectedCats('edit-cat-select')
@@ -882,6 +891,7 @@ async function readRecipePhoto(event) {
     const recipe = JSON.parse(match[0])
     if (recipe.error) throw new Error(recipe.error)
     document.getElementById('recipe-name').value = recipe.name || ''
+    document.getElementById('recipe-servings').value = recipe.servings || ''
     document.getElementById('recipe-ingredients').value = recipe.ingredients || ''
     document.getElementById('recipe-steps').value = recipe.steps || ''
     status.textContent = `✅ 「${recipe.name}」を読み取りました。内容を確認して保存してください。`
