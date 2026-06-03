@@ -25,6 +25,12 @@ export default async function handler(req, res) {
       { type: 'text', text: 'このレシートから料理に使える食材をJSON配列で抽出してください。' }
     ]}]
 
+  } else if (type === 'search') {
+    system = `ユーザーの食材を使ったレシピをウェブ検索して、3〜5件提案してください。
+以下のJSON形式のみで返してください。前置き不要。
+[{"name":"料理名","ingredients":"材料1,材料2,材料3","steps":"作り方の要約（2〜3文）","source":"参考サイト名"}]`
+    messages = [{ role: 'user', content: `手持ち食材: ${ingredients?.join('、')}\nこれらを使ったレシピをネットで検索して3〜5件JSON形式で提案してください。` }]
+
   } else if (type === 'recipe') {
     system = `料理レシピの画像から情報を抽出し、以下のJSON形式のみで返してください。前置き不要。
 {"name":"料理名","ingredients":"材料1,材料2,材料3","steps":"作り方の要約"}
@@ -42,8 +48,16 @@ export default async function handler(req, res) {
         'Content-Type': 'application/json',
         'x-api-key': apiKey,
         'anthropic-version': '2023-06-01',
+        ...(type === 'search' ? { 'anthropic-beta': 'web-search-2025-03-05' } : {})
       },
-      body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 1500, system, messages })
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 1500,
+        system,
+        messages,
+        ...(type === 'search' ? { tools: [{ type: 'web_search_20250305', name: 'web_search' }] } : {})
+      }),
+      ...(type === 'search' ? {} : {})
     })
     const data = await response.json()
     if (!response.ok) throw new Error(data.error?.message || 'APIエラー')

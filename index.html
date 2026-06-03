@@ -131,6 +131,17 @@ textarea.input { resize: none; min-height: 80px; }
     <!-- 一覧ビュー -->
     <div id="recipe-view-list">
 
+    <!-- ネット検索 -->
+    <div class="card" style="border:2px dashed var(--green);background:rgba(74,158,107,0.05);margin-bottom:12px">
+      <div class="section-title">🔍 ネットからレシピを探す</div>
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <input class="input" id="search-ing-input" placeholder="食材を入力（例：鶏肉、じゃがいも）" style="flex:1">
+        <button class="btn btn-small" style="background:var(--green);color:#fff;border:none" onclick="searchOnlineRecipes()">検索</button>
+      </div>
+      <div style="font-size:12px;color:var(--text2)">今ある食材タブの食材で検索する場合は空欄のままで</div>
+      <div id="search-results" style="margin-top:12px"></div>
+    </div>
+
     <!-- 写真から読み込み -->
     <div class="card" style="border:2px dashed var(--accent);background:rgba(224,123,57,0.05)">
       <div class="section-title">📷 写真からレシピを読み込む</div>
@@ -314,6 +325,57 @@ function renderIngredientView() {
       </div>
     `).join('')}
   `
+}
+
+// ネットレシピ検索
+async function searchOnlineRecipes() {
+  const input = document.getElementById('search-ing-input').value.trim()
+  const searchIngs = input
+    ? input.split(/[,、，\s]+/).map(s => s.trim()).filter(Boolean)
+    : ingredients
+
+  if (searchIngs.length === 0) {
+    notify('食材を入力するか、食材タブで食材を追加してください')
+    return
+  }
+
+  const el = document.getElementById('search-results')
+  el.innerHTML = '<div class="loading">🌐 ネットでレシピを検索中...</div>'
+
+  try {
+    const text = await callApi({ type: 'search', ingredients: searchIngs })
+    const match = text.match(/\[[\s\S]*\]/)
+    if (!match) throw new Error('レシピが見つかりませんでした')
+    const found = JSON.parse(match[0])
+
+    el.innerHTML = `
+      <div class="section-title" style="margin-bottom:8px">「${searchIngs.slice(0,3).join('・')}」のレシピ（${found.length}件）</div>
+      ${found.map((r, i) => `
+        <div class="recipe-item" style="margin-bottom:8px">
+          <div class="recipe-name">${r.name}</div>
+          <div class="recipe-meta">材料: ${r.ingredients}</div>
+          ${r.steps ? `<div class="recipe-meta" style="margin-top:4px">${r.steps}</div>` : ''}
+          ${r.source ? `<div class="recipe-meta" style="margin-top:4px;color:var(--green)">📌 ${r.source}</div>` : ''}
+          <div class="recipe-actions" style="margin-top:8px">
+            <button class="btn btn-small" style="background:var(--green);color:#fff;border:none" onclick="addFoundRecipe(${i})">+ 登録する</button>
+          </div>
+        </div>
+      `).join('')}
+    `
+    // 検索結果を一時保存
+    window._foundRecipes = found
+  } catch (e) {
+    el.innerHTML = `<div class="loading" style="color:var(--red)">エラー: ${e.message}</div>`
+  }
+}
+
+function addFoundRecipe(i) {
+  const r = window._foundRecipes?.[i]
+  if (!r) return
+  recipes.push({ id: Date.now(), name: r.name, ingredients: r.ingredients, steps: r.steps || '' })
+  localStorage.setItem('recipes', JSON.stringify(recipes))
+  notify(`「${r.name}」をレシピに登録しました！`)
+  renderRecipes()
 }
 
 function filterByIngredient(ing) {
