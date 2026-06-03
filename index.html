@@ -283,7 +283,9 @@ function renderIngredientView() {
   // 全レシピから食材を抽出してユニーク化
   const allIngs = {}
   recipes.forEach(r => {
-    r.ingredients.split(/[,、，\s]+/).map(i => i.trim()).filter(Boolean).forEach(ing => {
+    r.ingredients.split(/[,、，]+/).map(i =>
+      i.trim().replace(/[\d０-９]+\s*(?:g|ml|cc|kg|L|個|枚|本|袋|缶|パック|カップ|大さじ|小さじ|少々|適量|少量|適宜)[^\S]*/gi, '').trim()
+    ).filter(Boolean).forEach(ing => {
       if (!allIngs[ing]) allIngs[ing] = []
       allIngs[ing].push(r)
     })
