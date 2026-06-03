@@ -195,7 +195,14 @@ textarea.input { resize: none; min-height: 80px; }
 
     <!-- 一覧ビュー -->
     <div id="recipe-view-list">
-      <div id="cat-filter-bar" style="margin-bottom:10px"></div>
+      <!-- 検索 -->
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <input class="input" id="recipe-search" placeholder="🔍 料理名で検索..." style="flex:1;padding:10px 14px" oninput="renderRecipes()">
+      </div>
+      <!-- カテゴリフィルター -->
+      <div id="cat-filter-bar" style="margin-bottom:6px"></div>
+      <!-- タグフィルター -->
+      <div id="spec-filter-bar" style="margin-bottom:10px"></div>
 
     <!-- ネット検索 -->
     <div class="card" style="border:2px dashed var(--green);background:rgba(74,158,107,0.05);margin-bottom:12px">
@@ -367,6 +374,7 @@ const CATEGORIES = ['メイン料理','副菜','汁物','箸休め','おつま�
 const SPEC_TAGS = ['お気に入り','子供向け','大人向け','簡単','時短','作り置き','ヘルシー','節約']
 let editingId = null
 let selectedCategory = 'すべて'
+let selectedTags = new Set()
 let recipeView = 'list'
 let selectedIngredient = null
 
@@ -399,6 +407,26 @@ function renderCatFilter() {
 
 function filterCat(c) {
   selectedCategory = c
+  renderRecipes()
+}
+
+function renderSpecFilter() {
+  // 使われているタグのみ表示
+  const usedTags = new Set(recipes.flatMap(r => r.tags || []))
+  if (usedTags.size === 0) {
+    document.getElementById('spec-filter-bar').innerHTML = ''
+    return
+  }
+  const allSpecTags = ['お気に入り', ...SPEC_TAGS.filter(t => t !== 'お気に入り')]
+  document.getElementById('spec-filter-bar').innerHTML =
+    allSpecTags.filter(t => usedTags.has(t)).map(t =>
+      `<span class="spec-tag spec-${t} ${selectedTags.has(t) ? 'active' : ''}" onclick="toggleTagFilter('${t}')">${t === 'お気に入り' ? '⭐' : ''} ${t}</span>`
+    ).join('')
+}
+
+function toggleTagFilter(t) {
+  if (selectedTags.has(t)) selectedTags.delete(t)
+  else selectedTags.add(t)
   renderRecipes()
 }
 
@@ -520,10 +548,20 @@ function filterByIngredient(ing) {
 
 function renderRecipes() {
   renderCatFilter()
+  renderSpecFilter()
+  const searchQ = (document.getElementById('recipe-search')?.value || '').trim().toLowerCase()
   const el = document.getElementById('recipe-list')
   let filtered = selectedCategory === 'すべて'
     ? recipes
     : recipes.filter(r => (r.category || 'その他') === selectedCategory)
+  // タグフィルター（選択タグを全て持つもの）
+  if (selectedTags.size > 0) {
+    filtered = filtered.filter(r => [...selectedTags].every(t => (r.tags || []).includes(t)))
+  }
+  // テキスト検索
+  if (searchQ) {
+    filtered = filtered.filter(r => r.name.toLowerCase().includes(searchQ) || r.ingredients.toLowerCase().includes(searchQ))
+  }
   if (recipes.length === 0) {
     el.innerHTML = '<div class="loading">レシピがまだありません</div>'
     return
