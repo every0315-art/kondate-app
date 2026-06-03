@@ -109,6 +109,16 @@ textarea.input { resize: none; min-height: 80px; }
     <button class="btn btn-primary btn-green" onclick="showTab('plan');generatePlan()" style="margin-top:4px;">
       🍳 この食材で献立を作る
     </button>
+
+    <!-- APIキー設定 -->
+    <div id="api-key-card" class="card" style="margin-top:12px;display:none">
+      <div class="section-title">⚙️ APIキー設定</div>
+      <input class="input" id="api-key-input" type="password" placeholder="sk-ant-api03-...">
+      <button class="btn btn-primary" style="margin-top:8px" onclick="saveApiKey()">保存</button>
+    </div>
+    <div style="text-align:center;margin-top:8px">
+      <button style="background:none;border:none;color:var(--text2);font-size:12px;cursor:pointer" onclick="toggleApiCard()">⚙️ APIキー設定</button>
+    </div>
   </div>
 
   <!-- レシピタブ -->
@@ -169,13 +179,29 @@ let apiKey = localStorage.getItem('kondate_api_key') || ''
 // API Key setup
 function getApiKey() {
   if (apiKey) return apiKey
-  const key = prompt('AnthropicのAPIキーを入力してください（sk-ant-...）:')
-  if (key && key.startsWith('sk-')) {
-    apiKey = key
-    localStorage.setItem('kondate_api_key', key)
-    return key
-  }
+  // APIキーがなければ設定カードを表示
+  document.getElementById('api-key-card').style.display = 'block'
+  showTab('ingredients')
+  notify('APIキーを設定してください')
   return null
+}
+
+function saveApiKey() {
+  const val = document.getElementById('api-key-input').value.trim()
+  if (!val.startsWith('sk-')) {
+    notify('sk- で始まるキーを入力してください')
+    return
+  }
+  apiKey = val
+  localStorage.setItem('kondate_api_key', apiKey)
+  document.getElementById('api-key-card').style.display = 'none'
+  document.getElementById('api-key-input').value = ''
+  notify('APIキーを保存しました！')
+}
+
+function toggleApiCard() {
+  const card = document.getElementById('api-key-card')
+  card.style.display = card.style.display === 'none' ? 'block' : 'none'
 }
 
 function showTab(tab) {
