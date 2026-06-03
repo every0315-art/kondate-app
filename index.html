@@ -65,27 +65,49 @@ textarea.input { resize: none; min-height: 80px; }
 .tag.active { background: var(--accent); color: #fff; border-color: var(--accent); }
 .tag-remove { background: var(--accent); color: #fff; border-color: var(--accent); }
 
-/* Category tags */
-.cat-tag { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 700; margin: 2px; cursor: pointer; border: 1px solid transparent; }
-.cat-tag.active, .cat-tag:hover { opacity: 1; }
-.cat-メイン料理  { background:#fde8d8; color:#c05f1f; border-color:#f5c0a0; }
-.cat-副菜       { background:#d8f0e0; color:#2d7a4a; border-color:#a0dbb8; }
-.cat-汁物       { background:#fdf5d8; color:#a07820; border-color:#f0d890; }
-.cat-箸休め     { background:#e8d8f5; color:#6030a0; border-color:#c8a0e0; }
-.cat-おつまみ   { background:#ffd8d8; color:#a03030; border-color:#f0a0a0; }
-.cat-麺         { background:#d8e8f5; color:#2050a0; border-color:#a0c0e8; }
-.cat-ご飯もの   { background:#f5f0d8; color:#807030; border-color:#e0d890; }
-.cat-鍋・煮物   { background:#fce8e0; color:#904020; border-color:#e8b090; }
-.cat-炒め物     { background:#fff0d8; color:#906020; border-color:#e8c880; }
-.cat-揚げ物     { background:#fffad8; color:#807020; border-color:#e8d870; }
-.cat-蒸し料理   { background:#e0f0f8; color:#206080; border-color:#90c8e0; }
-.cat-サラダ     { background:#e8f8e0; color:#306020; border-color:#a0d880; }
-.cat-デザート   { background:#fde0ee; color:#a03060; border-color:#f0a0c8; }
-.cat-パン・粉もの { background:#f8ead8; color:#805030; border-color:#d8b090; }
-.cat-朝食向け   { background:#e8f0ff; color:#3050a0; border-color:#a0b8f0; }
-.cat-弁当向け   { background:#e0f8e8; color:#205040; border-color:#80d0a0; }
+/* Category tags - 通常表示（レシピカード・詳細）*/
+.cat-tag { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; margin: 2px; cursor: pointer; border: 1px solid transparent; transition: all 0.15s; }
+/* 選択UIでの未選択状態 */
+.cat-select .cat-tag { opacity: 0.45; }
+.cat-select .cat-tag:hover { opacity: 0.75; }
+.cat-select .cat-tag.active { opacity: 1; box-shadow: 0 2px 8px rgba(0,0,0,0.18); transform: scale(1.06); border-width: 2px; font-weight: 800; }
+.cat-select .cat-tag.active::before { content: '✓ '; }
+.cat-メイン料理  { background:#fde8d8; color:#c05f1f; border-color:#e8904a; }
+.cat-メイン料理.active  { background:#e07030; color:#fff; border-color:#e07030; }
+.cat-副菜       { background:#d8f0e0; color:#2d7a4a; border-color:#70c890; }
+.cat-副菜.active       { background:#2d8a50; color:#fff; border-color:#2d8a50; }
+.cat-汁物       { background:#fdf5d8; color:#a07820; border-color:#d8c060; }
+.cat-汁物.active       { background:#b08820; color:#fff; border-color:#b08820; }
+.cat-箸休め     { background:#e8d8f5; color:#6030a0; border-color:#a870d8; }
+.cat-箸休め.active     { background:#7040b0; color:#fff; border-color:#7040b0; }
+.cat-おつまみ   { background:#ffd8d8; color:#a03030; border-color:#e08080; }
+.cat-おつまみ.active   { background:#c04040; color:#fff; border-color:#c04040; }
+.cat-麺         { background:#d8e8f5; color:#2050a0; border-color:#6090d8; }
+.cat-麺.active         { background:#2860b8; color:#fff; border-color:#2860b8; }
+.cat-ご飯もの   { background:#f5f0d8; color:#807030; border-color:#c8b060; }
+.cat-ご飯もの.active   { background:#907830; color:#fff; border-color:#907830; }
+.cat-鍋・煮物   { background:#fce8e0; color:#904020; border-color:#d89060; }
+.cat-鍋・煮物.active   { background:#a05028; color:#fff; border-color:#a05028; }
+.cat-炒め物     { background:#fff0d8; color:#906020; border-color:#d8a840; }
+.cat-炒め物.active     { background:#a07028; color:#fff; border-color:#a07028; }
+.cat-揚げ物     { background:#fffad8; color:#807020; border-color:#c8c040; }
+.cat-揚げ物.active     { background:#908020; color:#fff; border-color:#908020; }
+.cat-蒸し料理   { background:#e0f0f8; color:#206080; border-color:#70a8c8; }
+.cat-蒸し料理.active   { background:#287898; color:#fff; border-color:#287898; }
+.cat-サラダ     { background:#e8f8e0; color:#306020; border-color:#80c860; }
+.cat-サラダ.active     { background:#387828; color:#fff; border-color:#387828; }
+.cat-デザート   { background:#fde0ee; color:#a03060; border-color:#e880b0; }
+.cat-デザート.active   { background:#c04080; color:#fff; border-color:#c04080; }
+.cat-パン・粉もの { background:#f8ead8; color:#805030; border-color:#c89060; }
+.cat-パン・粉もの.active { background:#906040; color:#fff; border-color:#906040; }
+.cat-朝食向け   { background:#e8f0ff; color:#3050a0; border-color:#80a0e0; }
+.cat-朝食向け.active   { background:#3858b8; color:#fff; border-color:#3858b8; }
+.cat-弁当向け   { background:#e0f8e8; color:#205040; border-color:#60c890; }
+.cat-弁当向け.active   { background:#286850; color:#fff; border-color:#286850; }
 .cat-その他     { background:var(--surface2); color:var(--text2); border-color:var(--border); }
+.cat-その他.active     { background:#888; color:#fff; border-color:#888; }
 .cat-すべて     { background:var(--surface2); color:var(--text2); border-color:var(--border); }
+.cat-すべて.active     { background:var(--accent); color:#fff; border-color:var(--accent); }
 
 /* Recipe */
 .recipe-item { background: var(--surface); border-radius: 12px; padding: 14px; border: 1px solid var(--border); margin-bottom: 8px; }
@@ -238,8 +260,8 @@ textarea.input { resize: none; min-height: 80px; }
       <input class="input" id="recipe-name" placeholder="料理名" style="margin-bottom:8px">
       <input class="input" id="recipe-ingredients" placeholder="材料（カンマ区切り）例：鶏肉,玉ねぎ" style="margin-bottom:8px">
       <textarea class="input" id="recipe-steps" placeholder="作り方（省略可）" style="margin-bottom:8px"></textarea>
-      <div class="section-title" style="margin-bottom:6px">カテゴリ</div>
-      <div id="recipe-cat-select" style="margin-bottom:8px"></div>
+      <div class="section-title" style="margin-bottom:6px">カテゴリ（複数選択可）</div>
+      <div id="recipe-cat-select" class="cat-select" style="margin-bottom:8px"></div>
       <button class="btn btn-primary" onclick="saveRecipe()">レシピを保存</button>
     </div>
   </div>
@@ -289,8 +311,8 @@ textarea.input { resize: none; min-height: 80px; }
     <input class="input" id="edit-name" placeholder="料理名" style="margin-bottom:8px">
     <input class="input" id="edit-ingredients" placeholder="材料（カンマ区切り）" style="margin-bottom:8px">
     <textarea class="input" id="edit-steps" placeholder="作り方（省略可）" style="margin-bottom:8px"></textarea>
-    <div class="section-title" style="margin-bottom:6px">カテゴリ</div>
-    <div id="edit-cat-select" style="margin-bottom:12px"></div>
+    <div class="section-title" style="margin-bottom:6px">カテゴリ（複数選択可）</div>
+    <div id="edit-cat-select" class="cat-select" style="margin-bottom:12px"></div>
     <div class="section-title" style="margin-bottom:6px">タグ</div>
     <div id="edit-spec-tags" style="margin-bottom:16px"></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
