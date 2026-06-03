@@ -114,8 +114,22 @@ textarea.input { resize: none; min-height: 80px; }
   <!-- レシピタブ -->
   <div id="tab-recipes" style="display:none">
     <h1>📖 レシピ登録</h1>
+
+    <!-- 写真から読み込み -->
+    <div class="card" style="border:2px dashed var(--accent);background:rgba(224,123,57,0.05)">
+      <div class="section-title">📷 写真からレシピを読み込む</div>
+      <input type="file" id="recipe-photo-input" accept="image/*" capture="environment" style="display:none" onchange="readRecipePhoto(event)">
+      <button class="btn btn-primary" style="background:var(--accent);margin-top:0" onclick="document.getElementById('recipe-photo-input').click()">
+        📸 レシピ写真を撮影・選択
+      </button>
+      <div id="recipe-photo-preview" style="margin-top:10px;display:none">
+        <img id="recipe-photo-img" style="width:100%;border-radius:8px;max-height:200px;object-fit:cover">
+        <div id="recipe-photo-status" style="font-size:13px;color:var(--text2);margin-top:6px;text-align:center"></div>
+      </div>
+    </div>
+
     <div class="card">
-      <div class="section-title">新しいレシピ</div>
+      <div class="section-title">手動で入力</div>
       <input class="input" id="recipe-name" placeholder="料理名" style="margin-bottom:8px">
       <input class="input" id="recipe-ingredients" placeholder="材料（カンマ区切り）例：鶏肉,玉ねぎ,醤油" style="margin-bottom:8px">
       <textarea class="input" id="recipe-steps" placeholder="作り方（省略可）"></textarea>
@@ -370,6 +384,82 @@ function addShopItem() {
     input.value = ''
     renderShopping()
   }
+}
+
+// レシピ写真読み取り
+async function readRecipePhoto(event) {
+  const file = event.target.files[0]
+  if (!file) return
+
+  const key = getApiKey()
+  if (!key) return
+
+  const preview = document.getElementById('recipe-photo-preview')
+  const img = document.getElementById('recipe-photo-img')
+  const status = document.getElementById('recipe-photo-status')
+  preview.style.display = 'block'
+  img.src = URL.createObjectURL(file)
+  status.style.color = 'var(--text2)'
+  status.textContent = '🤖 レシピを読み取り中...'
+
+  const base64 = await new Promise(resolve => {
+    const reader = new FileReader()
+    reader.onload = e => resolve(e.target.result.split(',')[1])
+    reader.readAsDataURL(file)
+  })
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 1000,
+        system: `料理レシピの画像から情報を抽出し、以下のJSON形式のみで返してください。前置き不要。
+{"name":"料理名","ingredients":"材料1,材料2,材料3（量はなくて良い）","steps":"作り方の要約（2〜3文）"}
+レシピが読み取れない場合: {"error":"読み取れませんでした"}`,
+        messages: [{
+          role: 'user',
+          content: [{
+            type: 'image',
+            source: { type: 'base64', media_type: file.type, data: base64 }
+          }, {
+            type: 'text',
+            text: 'このレシピ画像から料理名・材料・作り方を抽出してJSON形式で返してください。'
+          }]
+        }]
+      })
+    })
+
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error?.message || 'APIエラー')
+
+    const text = data.content?.[0]?.text || ''
+    const match = text.match(/\{[\s\S]*\}/)
+    if (!match) throw new Error('レシピを読み取れませんでした')
+
+    const recipe = JSON.parse(match[0])
+    if (recipe.error) throw new Error(recipe.error)
+
+    // フォームに自動入力
+    document.getElementById('recipe-name').value = recipe.name || ''
+    document.getElementById('recipe-ingredients').value = recipe.ingredients || ''
+    document.getElementById('recipe-steps').value = recipe.steps || ''
+
+    status.textContent = `✅ 「${recipe.name}」を読み取りました。内容を確認して保存してください。`
+    status.style.color = 'var(--green)'
+    notify('レシピを読み取りました！内容を確認して保存してください。')
+
+  } catch (e) {
+    status.textContent = `❌ エラー: ${e.message}`
+    status.style.color = 'var(--red)'
+  }
+
+  event.target.value = ''
 }
 
 // レシート読み取り
