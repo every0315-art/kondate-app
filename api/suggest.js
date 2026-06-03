@@ -19,13 +19,10 @@ export default async function handler(req, res) {
     messages = [{ role: 'user', content: `手持ち食材: ${ingredients?.join('、') || 'なし'}${recipeList}\n\n3〜5日分の献立をJSON形式で提案してください。登録レシピを優先的に使ってください。` }]
 
   } else if (type === 'search') {
-    extraHeaders = { 'anthropic-beta': 'web-search-2025-03-05' }
-    tools = [{ type: 'web_search_20250305', name: 'web_search' }]
-    toolChoice = { type: 'any' }
-    system = `あなたは料理レシピの検索アシスタントです。ウェブ検索で実際のレシピサイト（クックパッド、デリッシュキッチン、白ごはん.com等）からレシピを調べ、以下のJSON配列のみで返してください。前置き・説明不要。
-重要: 材料は全て分量付きで記載。何人分かも必ず記載。
-[{"name":"料理名","servings":"2人分","ingredients":"材料1 分量,材料2 分量,材料3 分量（全材料を省略せず）","steps":"作り方の要約（3〜5文）","source":"参考サイト名"}]`
-    messages = [{ role: 'user', content: `「${ingredients?.join(' ')}」を使った家庭料理のレシピを2〜3件、実際のレシピサイトから検索してください。材料の分量と何人分かを必ず含めてJSON配列で返してください。` }]
+    system = `あなたは料理レシピの専門家です。指定された食材を使った家庭料理のレシピを3件提案してください。
+以下のJSON配列のみで返してください。前置き・説明不要。材料は全て分量付きで省略せず記載。
+[{"name":"料理名","servings":"2人分","ingredients":"材料1 分量,材料2 分量,材料3 分量","steps":"作り方（手順を3〜5文で）","source":"定番レシピ"}]`
+    messages = [{ role: 'user', content: `「${ingredients?.join('・')}」を使った美味しい家庭料理のレシピを3件、材料の分量と何人分かを含めてJSON配列で返してください。` }]
 
   } else if (type === 'receipt') {
     system = `レシート画像から食材・食品のみを抽出し、JSON配列で返してください。食品以外（日用品、洗剤など）は除外。形式: ["食材1","食材2"] 前置き不要。`
