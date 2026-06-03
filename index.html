@@ -84,8 +84,22 @@ textarea.input { resize: none; min-height: 80px; }
   <!-- 食材タブ -->
   <div id="tab-ingredients">
     <h1>🥕 食材管理</h1>
+
+    <!-- レシート読み取り -->
+    <div class="card" style="border:2px dashed var(--accent);background:rgba(224,123,57,0.05)">
+      <div class="section-title">📷 レシートから自動読み取り</div>
+      <input type="file" id="receipt-input" accept="image/*" capture="environment" style="display:none" onchange="readReceipt(event)">
+      <button class="btn btn-primary" style="background:var(--accent);margin-top:0" onclick="document.getElementById('receipt-input').click()">
+        📸 レシートを撮影・選択
+      </button>
+      <div id="receipt-preview" style="margin-top:10px;display:none">
+        <img id="receipt-img" style="width:100%;border-radius:8px;max-height:200px;object-fit:cover">
+        <div id="receipt-status" style="font-size:13px;color:var(--text2);margin-top:6px;text-align:center"></div>
+      </div>
+    </div>
+
     <div class="card">
-      <div class="section-title">今ある食材を追加</div>
+      <div class="section-title">手動で食材を追加</div>
       <div style="display:flex;gap:8px">
         <input class="input" id="ing-input" placeholder="例：鶏肉、玉ねぎ..." style="flex:1">
         <button class="btn btn-small" onclick="addIngredient()">追加</button>
@@ -356,6 +370,97 @@ function addShopItem() {
     input.value = ''
     renderShopping()
   }
+}
+
+// レシート読み取り
+async function readReceipt(event) {
+  const file = event.target.files[0]
+  if (!file) return
+
+  const key = getApiKey()
+  if (!key) return
+
+  // プレビュー表示
+  const preview = document.getElementById('receipt-preview')
+  const img = document.getElementById('receipt-img')
+  const status = document.getElementById('receipt-status')
+  preview.style.display = 'block'
+  img.src = URL.createObjectURL(file)
+  status.textContent = '🤖 レシートを解析中...'
+
+  // Base64変換
+  const base64 = await new Promise(resolve => {
+    const reader = new FileReader()
+    reader.onload = e => resolve(e.target.result.split(',')[1])
+    reader.readAsDataURL(file)
+  })
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 800,
+        system: `レシート画像から食材・食品のみを抽出し、JSON配列で返してください。
+食品以外（日用品、洗剤、紙類など）は除外。料理に使える食材・食品のみ。
+形式: ["食材1","食材2","食材3"]
+前置き不要。JSON配列のみ返してください。`,
+        messages: [{
+          role: 'user',
+          content: [{
+            type: 'image',
+            source: { type: 'base64', media_type: file.type, data: base64 }
+          }, {
+            type: 'text',
+            text: 'このレシートから料理に使える食材・食品をJSON配列で抽出してください。'
+          }]
+        }]
+      })
+    })
+
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error?.message || 'APIエラー')
+
+    const text = data.content?.[0]?.text || ''
+    const match = text.match(/\[[\s\S]*\]/)
+    if (!match) throw new Error('食材を読み取れませんでした')
+
+    const extracted = JSON.parse(match[0])
+    let added = 0
+    extracted.forEach(item => {
+      const clean = item.trim()
+      if (clean && !ingredients.includes(clean)) {
+        ingredients.push(clean)
+        added++
+      }
+    })
+    localStorage.setItem('ingredients', JSON.stringify(ingredients))
+    renderIngredients()
+
+    status.textContent = `✅ ${extracted.length}品目を読み取り、${added}件を追加しました`
+    status.style.color = 'var(--green)'
+    notify(`${added}件の食材を追加しました！`)
+
+    // 読み取り後すぐ献立提案するか確認
+    setTimeout(() => {
+      if (confirm(`${added}件の食材を追加しました。\nそのまま献立を作りますか？`)) {
+        showTab('plan')
+        generatePlan()
+      }
+    }, 500)
+
+  } catch (e) {
+    status.textContent = `❌ エラー: ${e.message}`
+    status.style.color = 'var(--red)'
+  }
+
+  // input をリセット（同じ画像を再選択できるように）
+  event.target.value = ''
 }
 
 // 初期化
