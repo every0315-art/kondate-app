@@ -24,6 +24,22 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .app { max-width: 480px; margin: 0 auto; padding: 16px; padding-bottom: 80px; }
 h1 { font-size: 22px; font-weight: 800; padding: 16px 0 20px; }
 
+/* Hero */
+.hero {
+  max-width: 480px; margin: 0 auto;
+  height: 200px; position: relative; overflow: hidden;
+  border-radius: 0 0 24px 24px;
+}
+.hero img { width: 100%; height: 100%; object-fit: cover; object-position: center 40%; }
+.hero-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.55) 100%);
+  display: flex; flex-direction: column; justify-content: flex-end;
+  padding: 20px 20px;
+}
+.hero-title { font-size: 26px; font-weight: 900; color: #fff; letter-spacing: 0.5px; text-shadow: 0 2px 8px rgba(0,0,0,0.4); }
+.hero-sub { font-size: 13px; color: rgba(255,255,255,0.85); margin-top: 2px; font-weight: 500; }
+
 /* Tabs */
 .bottom-nav {
   position: fixed; bottom: 0; left: 0; right: 0;
@@ -165,6 +181,15 @@ textarea.input { resize: none; min-height: 80px; }
 </style>
 </head>
 <body>
+<!-- Hero -->
+<div class="hero">
+  <img src="hero.jpg" alt="献立">
+  <div class="hero-overlay">
+    <div class="hero-title">🍱 献立アプリ</div>
+    <div class="hero-sub">毎日の食卓をもっと楽しく</div>
+  </div>
+</div>
+
 <div class="app" id="app">
   <div class="notif" id="notif"></div>
 
@@ -257,6 +282,13 @@ textarea.input { resize: none; min-height: 80px; }
     <!-- 手動入力 -->
     <div class="card">
       <div class="section-title">手動で入力</div>
+      <!-- 料理写真 -->
+      <input type="file" id="recipe-image-input" accept="image/*" style="display:none" onchange="previewRecipeImage(event)">
+      <div id="recipe-image-preview" style="margin-bottom:8px;display:none">
+        <img id="recipe-image-thumb" style="width:100%;max-height:160px;object-fit:cover;border-radius:10px">
+        <button onclick="clearRecipeImage()" style="background:none;border:none;color:var(--text2);font-size:12px;cursor:pointer;margin-top:4px">✕ 画像を削除</button>
+      </div>
+      <button class="btn btn-small" style="margin-bottom:8px;width:100%" onclick="document.getElementById('recipe-image-input').click()">📷 料理写真を追加</button>
       <input class="input" id="recipe-name" placeholder="料理名" style="margin-bottom:8px">
       <input class="input" id="recipe-servings" placeholder="何人分（例：2人分）" style="margin-bottom:8px">
       <input class="input" id="recipe-ingredients" placeholder="材料（カンマ区切り）例：鶏肉 300g,玉ねぎ 1個" style="margin-bottom:8px">
@@ -282,7 +314,11 @@ textarea.input { resize: none; min-height: 80px; }
 
 <!-- Detail Modal -->
 <div class="modal-bg" id="detail-modal" onclick="closeDetailModal(event)">
-  <div class="modal" style="padding-bottom:32px">
+  <div class="modal" style="padding-bottom:32px;padding-top:0;padding-left:0;padding-right:0;overflow:hidden">
+    <div id="detail-image-wrap" style="display:none;margin-bottom:0">
+      <img id="detail-image" style="width:100%;height:200px;object-fit:cover;display:block">
+    </div>
+    <div style="padding:20px 16px">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
       <div style="flex:1">
         <div id="detail-name" style="font-size:22px;font-weight:800;margin-bottom:6px"></div>
@@ -303,6 +339,7 @@ textarea.input { resize: none; min-height: 80px; }
       <button class="btn btn-primary" style="margin-top:0;font-size:13px" id="detail-edit-btn">✏️ 編集</button>
       <button class="btn" style="background:transparent;border:1px solid var(--red);color:var(--red);margin-top:0;font-size:13px" id="detail-delete-btn">🗑️ 削除</button>
     </div>
+    </div><!-- /padding div -->
   </div>
 </div>
 
@@ -411,13 +448,15 @@ function saveRecipe() {
   const steps = document.getElementById('recipe-steps').value.trim()
   const servings = document.getElementById('recipe-servings').value.trim()
   const categories = getSelectedCats('recipe-cat-select')
+  const image = document.getElementById('recipe-image-input')._base64 || ''
   if (!name || !ings) { notify('料理名と材料は必須です'); return }
-  recipes.push({ id: Date.now(), name, servings, ingredients: ings, steps, categories })
+  recipes.push({ id: Date.now(), name, servings, ingredients: ings, steps, categories, image })
   localStorage.setItem('recipes', JSON.stringify(recipes))
   document.getElementById('recipe-name').value = ''
   document.getElementById('recipe-servings').value = ''
   document.getElementById('recipe-ingredients').value = ''
   document.getElementById('recipe-steps').value = ''
+  clearRecipeImage()
   initCatSelect()
   notify('レシピを保存しました！')
   showTab('recipes')
@@ -650,7 +689,9 @@ function renderRecipes() {
     const isFav = r.tags?.includes('お気に入り')
     const specTags = (r.tags || []).filter(t => t !== 'お気に入り')
     return `
-    <div class="recipe-item" style="cursor:pointer" onclick="openDetailModal(${r.id})">
+    <div class="recipe-item" style="cursor:pointer;overflow:hidden;padding:0" onclick="openDetailModal(${r.id})">
+      ${r.image ? `<img src="${r.image}" style="width:100%;height:120px;object-fit:cover;display:block">` : ''}
+      <div style="padding:12px 14px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
           <span class="recipe-name">${r.name}</span>
@@ -661,6 +702,7 @@ function renderRecipes() {
       </div>
       <div class="recipe-meta">材料: ${r.ingredients.slice(0,50)}${r.ingredients.length>50?'...':''}</div>
       ${r.steps ? `<div class="recipe-meta" style="margin-top:2px">${r.steps.slice(0,40)}${r.steps.length>40?'...':''}</div>` : ''}
+      </div>
     </div>`
   }).join('')
 }
@@ -671,6 +713,14 @@ function openDetailModal(id) {
   const isFav = r.tags?.includes('お気に入り')
   const allTags = r.tags || []
 
+  // 画像表示
+  const imgWrap = document.getElementById('detail-image-wrap')
+  if (r.image) {
+    document.getElementById('detail-image').src = r.image
+    imgWrap.style.display = 'block'
+  } else {
+    imgWrap.style.display = 'none'
+  }
   document.getElementById('detail-name').textContent = r.name + (r.servings ? `　${r.servings}` : '')
   document.getElementById('detail-fav-btn').textContent = isFav ? '⭐' : '☆'
   document.getElementById('detail-fav-btn').onclick = () => { toggleFav(id); openDetailModal(id) }
@@ -866,6 +916,27 @@ function addShopItem() {
     input.value = ''
     renderShopping()
   }
+}
+
+// 料理写真添付
+function previewRecipeImage(event) {
+  const file = event.target.files[0]
+  if (!file) return
+  const reader = new FileReader()
+  reader.onload = e => {
+    const base64 = e.target.result
+    document.getElementById('recipe-image-thumb').src = base64
+    document.getElementById('recipe-image-preview').style.display = 'block'
+    document.getElementById('recipe-image-input')._base64 = base64
+  }
+  reader.readAsDataURL(file)
+}
+
+function clearRecipeImage() {
+  document.getElementById('recipe-image-preview').style.display = 'none'
+  document.getElementById('recipe-image-thumb').src = ''
+  document.getElementById('recipe-image-input').value = ''
+  document.getElementById('recipe-image-input')._base64 = ''
 }
 
 // レシピ写真読み取り
