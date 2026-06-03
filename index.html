@@ -257,6 +257,31 @@ textarea.input { resize: none; min-height: 80px; }
   </div>
 </div>
 
+<!-- Detail Modal -->
+<div class="modal-bg" id="detail-modal" onclick="closeDetailModal(event)">
+  <div class="modal" style="padding-bottom:32px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+      <div style="flex:1">
+        <div id="detail-name" style="font-size:22px;font-weight:800;margin-bottom:6px"></div>
+        <div id="detail-tags" style="margin-bottom:4px"></div>
+      </div>
+      <button id="detail-fav-btn" style="background:none;border:none;font-size:28px;cursor:pointer;padding:0 0 0 8px;line-height:1"></button>
+    </div>
+    <div style="background:var(--surface2);border-radius:12px;padding:14px;margin-bottom:14px">
+      <div class="section-title" style="margin-bottom:8px">🧂 材料</div>
+      <div id="detail-ingredients" style="font-size:15px;line-height:1.9"></div>
+    </div>
+    <div id="detail-steps-wrap" style="background:var(--surface2);border-radius:12px;padding:14px;margin-bottom:16px;display:none">
+      <div class="section-title" style="margin-bottom:8px">👨‍🍳 作り方</div>
+      <div id="detail-steps" style="font-size:14px;line-height:1.8;color:var(--text)"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <button class="btn" style="background:var(--surface2);border:1px solid var(--border);margin-top:0" onclick="closeDetailModal()">閉じる</button>
+      <button class="btn btn-primary" style="margin-top:0" id="detail-edit-btn">✏️ 編集</button>
+    </div>
+  </div>
+</div>
+
 <!-- Edit Modal -->
 <div class="modal-bg" id="edit-modal" onclick="closeEditModal(event)">
   <div class="modal">
@@ -583,23 +608,60 @@ function renderRecipes() {
     const isFav = r.tags?.includes('お気に入り')
     const specTags = (r.tags || []).filter(t => t !== 'お気に入り')
     return `
-    <div class="recipe-item">
+    <div class="recipe-item" style="cursor:pointer" onclick="openDetailModal(${r.id})">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
           <span class="recipe-name">${r.name}</span>
           ${r.category ? `<span class="cat-tag cat-${r.category}">${r.category}</span>` : ''}
           ${specTags.map(t => `<span class="spec-tag spec-${t} active" style="font-size:10px;padding:1px 7px">${t}</span>`).join('')}
         </div>
-        <button class="fav-btn" onclick="toggleFav(${r.id})">${isFav ? '⭐' : '☆'}</button>
+        <button class="fav-btn" onclick="event.stopPropagation();toggleFav(${r.id})">${isFav ? '⭐' : '☆'}</button>
       </div>
-      <div class="recipe-meta">材料: ${r.ingredients}</div>
-      ${r.steps ? `<div class="recipe-meta" style="margin-top:4px">${r.steps.slice(0,60)}${r.steps.length>60?'...':''}</div>` : ''}
-      <div class="recipe-actions">
-        <button class="btn btn-small" onclick="openEditModal(${r.id})">✏️ 編集</button>
-        <button class="btn btn-danger" onclick="deleteRecipe(${r.id})">削除</button>
-      </div>
+      <div class="recipe-meta">材料: ${r.ingredients.slice(0,50)}${r.ingredients.length>50?'...':''}</div>
+      ${r.steps ? `<div class="recipe-meta" style="margin-top:2px">${r.steps.slice(0,40)}${r.steps.length>40?'...':''}</div>` : ''}
     </div>`
   }).join('')
+}
+
+function openDetailModal(id) {
+  const r = recipes.find(r => r.id === id)
+  if (!r) return
+  const isFav = r.tags?.includes('お気に入り')
+  const allTags = r.tags || []
+
+  document.getElementById('detail-name').textContent = r.name
+  document.getElementById('detail-fav-btn').textContent = isFav ? '⭐' : '☆'
+  document.getElementById('detail-fav-btn').onclick = () => { toggleFav(id); openDetailModal(id) }
+
+  // タグ表示
+  const tagHtml = [
+    r.category ? `<span class="cat-tag cat-${r.category}">${r.category}</span>` : '',
+    ...allTags.filter(t => t !== 'お気に入り').map(t => `<span class="spec-tag spec-${t} active">${t}</span>`)
+  ].join('')
+  document.getElementById('detail-tags').innerHTML = tagHtml
+
+  // 材料を箇条書きに
+  const ings = r.ingredients.split(/[,、，]+/).map(i => i.trim()).filter(Boolean)
+  document.getElementById('detail-ingredients').innerHTML = ings.map(i => `• ${i}`).join('<br>')
+
+  // 作り方
+  const stepsWrap = document.getElementById('detail-steps-wrap')
+  if (r.steps) {
+    stepsWrap.style.display = 'block'
+    document.getElementById('detail-steps').textContent = r.steps
+  } else {
+    stepsWrap.style.display = 'none'
+  }
+
+  // 編集ボタン
+  document.getElementById('detail-edit-btn').onclick = () => { closeDetailModal(); openEditModal(id) }
+
+  document.getElementById('detail-modal').classList.add('show')
+}
+
+function closeDetailModal(e) {
+  if (e && e.target !== document.getElementById('detail-modal')) return
+  document.getElementById('detail-modal').classList.remove('show')
 }
 
 function toggleFav(id) {
