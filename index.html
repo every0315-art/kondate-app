@@ -611,6 +611,7 @@ textarea.input { resize: none; min-height: 80px; }
 
     <div id="plan-content"></div>
     <div id="plan-share-btns" style="display:none;gap:8px;margin-top:12px">
+      <button class="btn btn-primary" style="margin-top:0;background:var(--green)" onclick="addMissingToShopping()">🛒 不足食材を買い物リストに追加</button>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
         <button class="btn" style="background:var(--surface2);border:1px solid var(--border);margin-top:0" onclick="sharePlanLink()">リンクをシェア</button>
         <button class="btn" style="background:var(--surface2);border:1px solid var(--border);margin-top:0" onclick="sharePlanText()">テキストをシェア</button>
@@ -2397,6 +2398,19 @@ function deleteDayPlan() {
   selectedCalDay = null
   renderCalendar()
   notify('削除しました')
+}
+
+function addMissingToShopping() {
+  if (!currentPlan || currentPlan.length === 0) { notify('先に献立を生成してください'); return }
+  const allMissing = [...new Set(currentPlan.flatMap(p => p.missing || []))]
+  if (allMissing.length === 0) { notify('不足食材はありません'); return }
+  const existing = new Set(shoppingList.map(s => s.name))
+  let added = 0
+  allMissing.forEach(item => {
+    if (!existing.has(item)) { shoppingList.push({ name: item, checked: false }); added++ }
+  })
+  localStorage.setItem('shoppingList', JSON.stringify(shoppingList))
+  notify(added > 0 ? `${added}件を買い物リストに追加しました` : 'すでにすべて買い物リストにあります')
 }
 
 function registerPlanToCalendar() {
