@@ -10,13 +10,17 @@ export default async function handler(req, res) {
   let messages, system, tools, toolChoice, extraHeaders = {}
 
   if (type === 'plan') {
+    const { meals, servings, priority } = req.body || {}
+    const mealList = (meals && meals.length) ? meals : ['朝','昼','夜']
+    const servingsNum = servings || 2
+    const priorityList = (priority && priority.length) ? priority : []
     const topRecipes = (recipes || []).slice(0, 10)
-    const recipeList = topRecipes.length
-      ? `\n登録レシピ:${topRecipes.map(r => r.name).join('、')}`
-      : ''
-    system = `献立アドバイザー。3日分の献立(朝昼夜)をJSONのみで返す。前置き不要。
-[{"day":"1日目","meals":{"朝":"料理名","昼":"料理名","夜":"料理名"},"note":"コメント","missing":["不足食材"]}]`
-    messages = [{ role: 'user', content: `食材:${ingredients?.join('、') || 'なし'}${recipeList}\n3日分の献立をJSONで。登録レシピ優先。` }]
+    const recipeList = topRecipes.length ? `\n登録レシピ:${topRecipes.map(r => r.name).join('、')}` : ''
+    const priorityNote = priorityList.length ? `\n優先使用食材:${priorityList.join('、')}（必ずこれらを使う料理を含める）` : ''
+    const mealKeys = mealList.reduce((o, m) => { o[m] = '料理名'; return o }, {})
+    system = `献立アドバイザー。3日分の献立をJSONのみで返す。前置き不要。対象の食事:${mealList.join('・')}、${servingsNum}人分。
+[{"day":"1日目","meals":${JSON.stringify(mealKeys)},"note":"コメント","missing":["不足食材"]}]`
+    messages = [{ role: 'user', content: `食材:${ingredients?.join('、') || 'なし'}${recipeList}${priorityNote}\n3日分の献立をJSONで。登録レシピ優先。対象の食事は${mealList.join('・')}のみ。` }]
 
   } else if (type === 'search') {
     system = `あなたは料理レシピの専門家です。指定された食材を使った家庭料理のレシピを3件提案してください。
