@@ -632,6 +632,9 @@ textarea.input { resize: none; min-height: 80px; }
   <!-- 買い物タブ -->
   <div id="tab-shopping" style="display:none">
     <h1>🛒 買い物リスト</h1>
+    <button class="btn btn-primary" style="background:var(--green);margin-bottom:12px" onclick="addOutOfStockToShopping()">
+      📦 在庫切れ食材を追加
+    </button>
     <div id="shopping-content"><div class="loading">献立を作成すると買い物リストが生成されます</div></div>
   </div>
 
@@ -2303,6 +2306,21 @@ function clearChecked() {
   shoppingList = shoppingList.filter(s => !s.checked)
   localStorage.setItem('shoppingList', JSON.stringify(shoppingList))
   renderShopping()
+}
+
+function addOutOfStockToShopping() {
+  const stock = getStapleStock()
+  const allStaples = getStaples().flatMap(g => g.items)
+  const outOfStock = allStaples.filter(item => !stock.has(item))
+  if (outOfStock.length === 0) { notify('在庫切れの食材はありません'); return }
+  const existing = new Set(shoppingList.map(s => s.name))
+  let added = 0
+  outOfStock.forEach(item => {
+    if (!existing.has(item)) { shoppingList.push({ name: item, checked: false }); added++ }
+  })
+  localStorage.setItem('shoppingList', JSON.stringify(shoppingList))
+  renderShopping()
+  notify(`在庫切れ ${outOfStock.length}品目のうち ${added}件を買い物リストに追加しました`)
 }
 
 function addShopItem() {
