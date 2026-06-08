@@ -1910,19 +1910,7 @@ async function readRecipePhoto(event) {
   img.src = URL.createObjectURL(file)
   status.style.color = 'var(--text2)'
   status.textContent = '🤖 レシピを読み取り中...'
-  const base64 = await new Promise(resolve => {
-    const blobUrl = URL.createObjectURL(file)
-    const tmpImg = new Image()
-    tmpImg.onload = () => {
-      const canvas = document.createElement('canvas')
-      canvas.width = tmpImg.width
-      canvas.height = tmpImg.height
-      canvas.getContext('2d').drawImage(tmpImg, 0, 0)
-      URL.revokeObjectURL(blobUrl)
-      resolve(canvas.toDataURL('image/jpeg', 0.85).split(',')[1])
-    }
-    tmpImg.src = blobUrl
-  })
+  const base64 = await resizeImageToBase64(file, 1200)
   try {
     const text = await callApi({ type: 'recipe', imageBase64: base64, imageType: 'image/jpeg' })
     const match = text.match(/\{[\s\S]*\}/)
@@ -1944,6 +1932,26 @@ async function readRecipePhoto(event) {
 }
 
 // レシート読み取り
+function resizeImageToBase64(file, maxPx = 1200, quality = 0.82) {
+  return new Promise(resolve => {
+    const blobUrl = URL.createObjectURL(file)
+    const tmpImg = new Image()
+    tmpImg.onload = () => {
+      let w = tmpImg.width, h = tmpImg.height
+      if (w > maxPx || h > maxPx) {
+        if (w > h) { h = Math.round(h * maxPx / w); w = maxPx }
+        else { w = Math.round(w * maxPx / h); h = maxPx }
+      }
+      const canvas = document.createElement('canvas')
+      canvas.width = w; canvas.height = h
+      canvas.getContext('2d').drawImage(tmpImg, 0, 0, w, h)
+      URL.revokeObjectURL(blobUrl)
+      resolve(canvas.toDataURL('image/jpeg', quality).split(',')[1])
+    }
+    tmpImg.src = blobUrl
+  })
+}
+
 async function readReceipt(event) {
   const file = event.target.files[0]
   if (!file) return
@@ -1954,19 +1962,7 @@ async function readReceipt(event) {
   img.src = URL.createObjectURL(file)
   status.style.color = 'var(--text2)'
   status.textContent = '🤖 レシートを解析中...'
-  const base64 = await new Promise(resolve => {
-    const blobUrl = URL.createObjectURL(file)
-    const tmpImg = new Image()
-    tmpImg.onload = () => {
-      const canvas = document.createElement('canvas')
-      canvas.width = tmpImg.width
-      canvas.height = tmpImg.height
-      canvas.getContext('2d').drawImage(tmpImg, 0, 0)
-      URL.revokeObjectURL(blobUrl)
-      resolve(canvas.toDataURL('image/jpeg', 0.85).split(',')[1])
-    }
-    tmpImg.src = blobUrl
-  })
+  const base64 = await resizeImageToBase64(file, 1200)
   try {
     const text = await callApi({ type: 'receipt', imageBase64: base64, imageType: 'image/jpeg' })
     const match = text.match(/\[[\s\S]*\]/)
@@ -2005,19 +2001,7 @@ async function readFridgePhoto(event) {
   img.src = URL.createObjectURL(file)
   status.style.color = 'var(--text2)'
   status.textContent = '🤖 冷蔵庫の食材を解析中...'
-  const base64 = await new Promise(resolve => {
-    const blobUrl = URL.createObjectURL(file)
-    const tmpImg = new Image()
-    tmpImg.onload = () => {
-      const canvas = document.createElement('canvas')
-      canvas.width = tmpImg.width
-      canvas.height = tmpImg.height
-      canvas.getContext('2d').drawImage(tmpImg, 0, 0)
-      URL.revokeObjectURL(blobUrl)
-      resolve(canvas.toDataURL('image/jpeg', 0.85).split(',')[1])
-    }
-    tmpImg.src = blobUrl
-  })
+  const base64 = await resizeImageToBase64(file, 1200)
   try {
     const text = await callApi({ type: 'fridge', imageBase64: base64, imageType: 'image/jpeg' })
     const match = text.match(/\[[\s\S]*\]/)
