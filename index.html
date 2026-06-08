@@ -1953,12 +1953,22 @@ async function generatePlan() {
   const planEl = document.getElementById('plan-content')
   planEl.innerHTML = '<div class="loading">AIが献立を考えています...</div>'
   const priority = [...planPriorityIngs]
+  // レシピは名前だけ送る（データ量削減）
+  const recipeNames = (recipes || []).slice(0, 8).map(r => ({ name: r.name }))
   try {
-    const text = await callApi({ type: 'plan', ingredients, recipes, meals, servings: planServings, priority })
-    const match = text.match(/\[[\s\S]*\]/)
-    if (!match) throw new Error('レスポンスの形式が不正です')
-    const plan = JSON.parse(match[0])
-    renderPlan(plan)
+    const text = await callApi({ type: 'plan', ingredients, recipes: recipeNames, meals, servings: planServings, priority })
+    if (!text) throw new Error('APIからの応答が空です')
+    // JSON配列を抽出
+    const match = text.match(/\[[\s\S]*?\](?=\s*$)/) || text.match(/\[[\s\S]*\]/)
+    if (!match) throw new Error('献立データを取得できませんでした。もう一度試してください。')
+    let plan
+    try {
+      plan = JSON.parse(match[0])
+    } catch {
+      throw new Error('献立データの解析に失敗しました。もう一度試してください。')
+    }
+    if (!Array.isArray(plan) || plan.length === 0) throw new Error('献立データが正しくありません')
+    renderPlan(plan, meals)
     const allMissing = [...new Set(plan.flatMap(p => p.missing || []))]
     shoppingList = allMissing.map(item => ({ name: item, checked: false }))
     localStorage.setItem('shoppingList', JSON.stringify(shoppingList))
@@ -1968,8 +1978,9 @@ async function generatePlan() {
   }
 }
 
-function renderPlan(plan) {
+function renderPlan(plan, meals) {
   currentPlan = plan
+  const mealKeys = meals || ['朝','昼','夜']
   document.getElementById('plan-share-btns').style.display = 'grid'
   const el = document.getElementById('plan-content')
   el.innerHTML = `
@@ -1978,12 +1989,10 @@ function renderPlan(plan) {
       <div class="meal-item">
         <div class="meal-day">${p.day}</div>
         <div style="display:grid;gap:4px;margin:6px 0">
-          <div><span style="font-size:11px;color:var(--text2)">朝</span> <span class="meal-name" style="font-size:14px">${p.meals.朝||'—'}</span></div>
-          <div><span style="font-size:11px;color:var(--text2)">昼</span> <span class="meal-name" style="font-size:14px">${p.meals.昼||'—'}</span></div>
-          <div><span style="font-size:11px;color:var(--text2)">夜</span> <span class="meal-name" style="font-size:14px">${p.meals.夜||'—'}</span></div>
+          ${mealKeys.map(m => `<div><span style="font-size:11px;color:var(--text2)">${m}</span> <span class="meal-name" style="font-size:14px">${p.meals?.[m]||'—'}</span></div>`).join('')}
         </div>
-        ${p.note ? `<div class="meal-note">💬 ${p.note}</div>` : ''}
-        ${p.missing?.length ? `<div class="meal-note" style="color:var(--accent)">🛒 必要: ${p.missing.join('、')}</div>` : ''}
+        ${p.note ? `<div class="meal-note">${p.note}</div>` : ''}
+        ${p.missing?.length ? `<div class="meal-note" style="color:var(--accent)">必要: ${p.missing.join('、')}</div>` : ''}
       </div>
     `).join('')}
   `
