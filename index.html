@@ -51,8 +51,8 @@ h1 { font-size: 22px; font-weight: 800; padding: 16px 0 20px; }
   background: rgba(255,255,255,0.95);
   backdrop-filter: blur(12px);
   border-top: 1px solid var(--border);
-  display: grid; grid-template-columns: repeat(6, 1fr);
-  padding: 6px 4px 26px; gap: 2px; z-index: 50;
+  display: grid; grid-template-columns: repeat(7, 1fr);
+  padding: 6px 2px 26px; gap: 1px; z-index: 50;
 }
 .nav-btn {
   padding: 6px 2px 4px;
@@ -62,19 +62,9 @@ h1 { font-size: 22px; font-weight: 800; padding: 16px 0 20px; }
   transition: all 0.2s; font-weight: 600;
   display: flex; flex-direction: column; align-items: center; gap: 2px;
 }
-.nav-btn .nav-icon {
-  font-size: 20px; line-height: 1;
-  width: 36px; height: 30px;
-  display: flex; align-items: center; justify-content: center;
-  border-radius: 10px; transition: all 0.2s;
-}
-.nav-btn.active .nav-icon {
-  background: linear-gradient(135deg, var(--accent), #c05f1f);
-  box-shadow: 0 3px 10px rgba(224,123,57,0.4);
-  transform: scale(1.05);
-}
-.nav-btn.active { color: var(--accent); font-weight: 800; }
-.nav-btn:not(.active) .nav-icon:hover { background: var(--surface2); }
+.nav-btn .nav-icon { display: none; }
+.nav-btn.active { color: var(--accent); font-weight: 800; border-top: 2px solid var(--accent); }
+.nav-btn:not(.active) { border-top: 2px solid transparent; }
 
 /* Cards */
 .card { background: var(--surface); border-radius: 14px; padding: 16px; border: 1px solid var(--border); margin-bottom: 12px; }
@@ -253,6 +243,20 @@ textarea.input { resize: none; min-height: 80px; }
 .user-bar { display: flex; align-items: center; justify-content: space-between; padding: 8px 16px 0; max-width: 480px; margin: 0 auto; }
 .user-email { font-size: 11px; color: var(--text2); }
 .btn-logout { background: none; border: 1px solid var(--border); border-radius: 8px; padding: 4px 10px; font-size: 11px; color: var(--text2); cursor: pointer; }
+
+/* Mypage */
+.mypage-avatar { width: 72px; height: 72px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), #c05f1f); display: flex; align-items: center; justify-content: center; font-size: 32px; margin: 0 auto 12px; box-shadow: 0 4px 14px rgba(224,123,57,0.35); }
+.mypage-email { font-size: 14px; font-weight: 600; color: var(--text); text-align: center; margin-bottom: 4px; word-break: break-all; }
+.mypage-provider { font-size: 12px; color: var(--text2); text-align: center; }
+.stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+.stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px 10px; text-align: center; }
+.stat-num { font-size: 28px; font-weight: 900; color: var(--accent); line-height: 1; }
+.stat-label { font-size: 11px; color: var(--text2); margin-top: 4px; font-weight: 600; }
+.mypage-menu-item { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--border); cursor: pointer; background: none; border-left: none; border-right: none; border-top: none; width: 100%; text-align: left; font-size: 15px; color: var(--text); font-weight: 500; }
+.mypage-menu-item:last-child { border-bottom: none; }
+.mypage-menu-item:hover { background: var(--surface2); }
+.mypage-menu-icon { font-size: 20px; width: 36px; height: 36px; background: var(--surface2); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.mypage-menu-arrow { margin-left: auto; color: var(--text2); font-size: 14px; }
 </style>
 </head>
 <body>
@@ -297,7 +301,7 @@ textarea.input { resize: none; min-height: 80px; }
 <!-- User Bar -->
 <div class="user-bar" id="user-bar" style="display:none">
   <span class="user-email" id="user-email"></span>
-  <button class="btn-logout" onclick="signOut()">ログアウト</button>
+  <button class="btn-logout" onclick="showTab('mypage')">👤 マイページ</button>
 </div>
 
 <!-- Hero -->
@@ -312,9 +316,9 @@ textarea.input { resize: none; min-height: 80px; }
 <div class="app" id="app">
   <div class="notif" id="notif"></div>
 
-  <!-- 食材タブ -->
-  <div id="tab-ingredients">
-    <h1>🥕 食材管理</h1>
+  <!-- 食材登録タブ -->
+  <div id="tab-ing-add">
+    <h1>🥕 食材登録</h1>
 
     <!-- 冷蔵庫写真読み取り -->
     <div class="card" style="border:2px dashed #4CAF50;background:rgba(76,175,80,0.05)">
@@ -343,18 +347,38 @@ textarea.input { resize: none; min-height: 80px; }
       </div>
     </div>
 
+    <!-- 手動追加 -->
     <div class="card">
       <div class="section-title">手動で食材を追加</div>
       <div style="display:flex;gap:8px">
         <input class="input" id="ing-input" placeholder="例：鶏肉、玉ねぎ..." style="flex:1">
         <button class="btn btn-small" onclick="addIngredient()">追加</button>
       </div>
-      <div id="ing-tags" style="margin-top:10px;"></div>
+    </div>
+    <button class="btn btn-primary" style="background:var(--text2);margin-top:4px" onclick="showTab('ing-stock')">
+      📦 食材在庫を確認する →
+    </button>
+  </div>
+
+  <!-- 食材在庫タブ -->
+  <div id="tab-ing-stock" style="display:none">
+    <h1>📦 食材在庫</h1>
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div class="section-title" style="margin:0">登録中の食材</div>
+        <span id="ing-count" style="font-size:12px;color:var(--text2);font-weight:600"></span>
+      </div>
+      <div id="ing-tags" style="min-height:40px"></div>
+      <div id="ing-empty" style="display:none;font-size:13px;color:var(--text2);padding:12px 0;text-align:center">
+        食材が登録されていません。<br>「食材登録」タブから追加してください。
+      </div>
     </div>
     <button class="btn btn-primary btn-green" onclick="showTab('plan');generatePlan()" style="margin-top:4px;">
       🍳 この食材で献立を作る
     </button>
-
+    <button class="btn btn-primary" style="background:var(--text2);margin-top:8px" onclick="showTab('ing-add')">
+      ← 食材を追加する
+    </button>
   </div>
 
   <!-- レシピ一覧タブ -->
@@ -478,18 +502,71 @@ textarea.input { resize: none; min-height: 80px; }
     <div id="shopping-content"><div class="loading">献立を作成すると買い物リストが生成されます</div></div>
   </div>
 
-  <!-- ガイドタブ -->
-  <div id="tab-guide" style="display:none">
-    <h1>📖 料理のコツ</h1>
-    <div class="guide-nav">
-      <button class="guide-nav-btn active" onclick="showGuide('cuts')">🔪 切り方</button>
-      <button class="guide-nav-btn" onclick="showGuide('heat')">🔥 火加減</button>
-      <button class="guide-nav-btn" onclick="showGuide('measure')">📏 計量</button>
-      <button class="guide-nav-btn" onclick="showGuide('prep')">🥢 下ごしらえ</button>
-      <button class="guide-nav-btn" onclick="showGuide('plate')">🍽️ 盛り付け</button>
+  <!-- マイページタブ -->
+  <div id="tab-mypage" style="display:none">
+    <h1>👤 マイページ</h1>
+
+    <!-- プロフィール -->
+    <div class="card" style="text-align:center;padding:24px 16px">
+      <div class="mypage-avatar" id="mypage-avatar">🍳</div>
+      <div class="mypage-email" id="mypage-email-text"></div>
+      <div class="mypage-provider" id="mypage-provider-text"></div>
     </div>
 
-    <!-- 切り方 -->
+    <!-- 統計 -->
+    <div class="section-title" style="margin-bottom:8px">📊 統計</div>
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-num" id="stat-recipes">0</div>
+        <div class="stat-label">登録レシピ</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="stat-favs">0</div>
+        <div class="stat-label">お気に入り</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="stat-cats">0</div>
+        <div class="stat-label">使用カテゴリ</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="stat-ingredients">0</div>
+        <div class="stat-label">冷蔵庫の食材</div>
+      </div>
+    </div>
+
+    <!-- アカウント設定 -->
+    <div class="section-title" style="margin-bottom:8px">⚙️ アカウント</div>
+    <div class="card" style="padding:0;overflow:hidden">
+      <button class="mypage-menu-item" onclick="startPasswordChange()">
+        <span class="mypage-menu-icon">🔑</span>
+        パスワードを変更
+        <span class="mypage-menu-arrow">›</span>
+      </button>
+      <button class="mypage-menu-item" onclick="showTab('recipes');toggleSharePanel()">
+        <span class="mypage-menu-icon">📤</span>
+        レシピをバックアップ・共有
+        <span class="mypage-menu-arrow">›</span>
+      </button>
+      <button class="mypage-menu-item" style="color:var(--red)" onclick="signOut()">
+        <span class="mypage-menu-icon" style="background:#fff0f0">🚪</span>
+        ログアウト
+        <span class="mypage-menu-arrow">›</span>
+      </button>
+    </div>
+
+    <!-- アプリ情報 -->
+    <div class="section-title" style="margin-bottom:8px;margin-top:4px">ℹ️ アプリ情報</div>
+    <div class="card" style="padding:0;overflow:hidden">
+      <div class="mypage-menu-item" style="cursor:default">
+        <span class="mypage-menu-icon">🍱</span>
+        <span style="flex:1">献立アプリ</span>
+        <span style="color:var(--text2);font-size:13px">v1.0</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ガイド（削除済み・互換性のためdivのみ残す） -->
+  <div id="tab-guide" style="display:none">
     <div id="guide-cuts" class="guide-section">
       <div class="guide-grid">
         <div class="guide-card">
@@ -812,23 +889,26 @@ textarea.input { resize: none; min-height: 80px; }
 
 <!-- Bottom Nav -->
 <div class="bottom-nav">
-  <button class="nav-btn active" id="btn-recipes" onclick="showTab('recipes')">
-    <span class="nav-icon">📋</span>レシピ
+  <button class="nav-btn active" id="btn-ing-add" onclick="showTab('ing-add')">
+    <span class="nav-icon"></span>食材登録
   </button>
-  <button class="nav-btn" id="btn-add-recipe" onclick="showTab('add-recipe')">
-    <span class="nav-icon">✏️</span>登録
+  <button class="nav-btn" id="btn-ing-stock" onclick="showTab('ing-stock')">
+    <span class="nav-icon"></span>食材在庫
   </button>
   <button class="nav-btn" id="btn-plan" onclick="showTab('plan')">
-    <span class="nav-icon">🍽️</span>献立
-  </button>
-  <button class="nav-btn" id="btn-ingredients" onclick="showTab('ingredients')">
-    <span class="nav-icon">🥩</span>食材
+    <span class="nav-icon"></span>献立
   </button>
   <button class="nav-btn" id="btn-shopping" onclick="showTab('shopping')">
-    <span class="nav-icon">🛒</span>買い物
+    <span class="nav-icon"></span>買い物
   </button>
-  <button class="nav-btn" id="btn-guide" onclick="showTab('guide')">
-    <span class="nav-icon">📖</span>コツ
+  <button class="nav-btn" id="btn-recipes" onclick="showTab('recipes')">
+    <span class="nav-icon"></span>レシピ
+  </button>
+  <button class="nav-btn" id="btn-add-recipe" onclick="showTab('add-recipe')">
+    <span class="nav-icon"></span>レシピ登録
+  </button>
+  <button class="nav-btn" id="btn-mypage" onclick="showTab('mypage')">
+    <span class="nav-icon"></span>マイページ
   </button>
 </div>
 
@@ -910,7 +990,7 @@ async function onLogin() {
   await loadRecipes()
   if (recipes.length === 0) await insertDefaultRecipes()
   renderIngredients()
-  showTab('recipes')
+  showTab('ing-add')
 }
 
 async function insertDefaultRecipes() {
@@ -1018,7 +1098,7 @@ async function signOut() {
 }
 
 // App
-const TABS = ['ingredients','recipes','add-recipe','plan','shopping','guide']
+const TABS = ['ing-add','ing-stock','plan','shopping','recipes','add-recipe','mypage']
 function safeGet(key) {
   try { return JSON.parse(localStorage.getItem(key) || '[]') } catch { return [] }
 }
@@ -1045,6 +1125,44 @@ function showTab(tab) {
   if (tab === 'recipes') renderRecipes()
   if (tab === 'add-recipe') initCatSelect()
   if (tab === 'shopping') renderShopping()
+  if (tab === 'mypage') renderMyPage()
+  if (tab === 'ing-stock') renderIngredientStock()
+}
+
+function renderMyPage() {
+  if (!currentUser) return
+  const email = currentUser.email || ''
+  const provider = currentUser.app_metadata?.provider || 'email'
+  document.getElementById('mypage-email-text').textContent = email
+  document.getElementById('mypage-provider-text').textContent =
+    provider === 'google' ? 'Googleアカウントでログイン中' : 'メールアドレスでログイン中'
+  document.getElementById('mypage-avatar').textContent = email ? email[0].toUpperCase() : '🍳'
+
+  const total = recipes.length
+  const favs = recipes.filter(r => r.tags && r.tags.includes('お気に入り')).length
+  const cats = new Set(recipes.flatMap(r => r.categories || [])).size
+  document.getElementById('stat-recipes').textContent = total
+  document.getElementById('stat-favs').textContent = favs
+  document.getElementById('stat-cats').textContent = cats
+  document.getElementById('stat-ingredients').textContent = ingredients.length
+}
+
+async function startPasswordChange() {
+  if (!currentUser) return
+  const provider = currentUser.app_metadata?.provider || 'email'
+  if (provider === 'google') {
+    notify('Googleアカウントではパスワード変更できません')
+    return
+  }
+  const email = currentUser.email
+  const { error } = await sb.auth.resetPasswordForEmail(email, {
+    redirectTo: location.origin + location.pathname
+  })
+  if (error) {
+    notify('送信に失敗しました')
+  } else {
+    notify('パスワード変更メールを送りました！')
+  }
 }
 
 function notify(msg) {
@@ -1060,6 +1178,16 @@ function renderIngredients() {
   el.innerHTML = ingredients.map((ing, i) =>
     `<span class="tag tag-remove" onclick="removeIngredient(${i})">✕ ${ing}</span>`
   ).join('')
+}
+
+function renderIngredientStock() {
+  renderIngredients()
+  const countEl = document.getElementById('ing-count')
+  const emptyEl = document.getElementById('ing-empty')
+  const tagsEl = document.getElementById('ing-tags')
+  if (countEl) countEl.textContent = ingredients.length > 0 ? `${ingredients.length}品` : ''
+  if (emptyEl) emptyEl.style.display = ingredients.length === 0 ? 'block' : 'none'
+  if (tagsEl) tagsEl.style.display = ingredients.length === 0 ? 'none' : 'block'
 }
 
 function addIngredient() {
