@@ -1046,6 +1046,15 @@ textarea.input { resize: none; min-height: 80px; }
 </div>
 
 <!-- Plan Edit Modal -->
+<div class="modal-bg" id="staple-cat-modal" onclick="closeStapleCatModal(event)" style="display:none">
+  <div class="modal">
+    <div class="modal-title">常備品カテゴリを選択</div>
+    <div id="staple-cat-name" style="font-size:15px;font-weight:800;color:var(--accent);margin-bottom:14px;text-align:center"></div>
+    <div id="staple-cat-btns" style="display:grid;gap:8px"></div>
+    <button class="btn" style="background:var(--surface2);border:1px solid var(--border);margin-top:12px" onclick="closeStapleCatModal()">キャンセル</button>
+  </div>
+</div>
+
 <div class="modal-bg" id="plan-edit-modal" onclick="closePlanEditModal(event)" style="display:none">
   <div class="modal">
     <div class="modal-title">献立を編集</div>
@@ -1558,17 +1567,33 @@ function removeIngredient(i) {
 
 function addToStaples(name) {
   const groups = getStaples()
-  // すでに常備品にある場合はスキップ
   if (groups.some(g => g.items.includes(name))) { notify(`「${name}」はすでに常備品にあります`); return }
-  // カテゴリを判定して対応するグループに追加
+  // カテゴリ選択モーダルを表示
+  document.getElementById('staple-cat-name').textContent = `「${name}」`
   const cat = classifyIngredient(name)
   const catToLabel = { '野菜': '野菜', '肉・魚': '肉・加工品', '卵・乳製品': '卵・乳製品', '調味料': '調味料', '穀物・麺': 'パン・主食' }
-  const targetLabel = catToLabel[cat] || 'パン・主食'
-  const group = groups.find(g => g.label === targetLabel) || groups[groups.length - 1]
+  const suggested = catToLabel[cat] || null
+  document.getElementById('staple-cat-btns').innerHTML = groups.map(g =>
+    `<button class="btn ${g.label === suggested ? 'btn-primary' : ''}" style="margin-top:0;${g.label === suggested ? '' : 'background:var(--surface2);border:1px solid var(--border);color:var(--text)'}" onclick="confirmAddToStaples('${name.replace(/'/g,"\\'")}','${g.label}')">
+      ${g.label === suggested ? '★ ' : ''}${g.label}
+    </button>`
+  ).join('')
+  document.getElementById('staple-cat-modal').style.display = 'flex'
+}
+
+function confirmAddToStaples(name, label) {
+  const groups = getStaples()
+  const group = groups.find(g => g.label === label) || groups[groups.length - 1]
   group.items.push(name)
   saveStaples(groups)
+  closeStapleCatModal()
   notify(`「${name}」を常備品（${group.label}）に追加しました`)
   renderIngredientStock()
+}
+
+function closeStapleCatModal(e) {
+  if (e && e.target !== e.currentTarget) return
+  document.getElementById('staple-cat-modal').style.display = 'none'
 }
 
 function removeIngredientByName(name) {
