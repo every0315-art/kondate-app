@@ -51,20 +51,36 @@ h1 { font-size: 22px; font-weight: 800; padding: 16px 0 20px; }
   background: rgba(255,255,255,0.95);
   backdrop-filter: blur(12px);
   border-top: 1px solid var(--border);
-  display: grid; grid-template-columns: repeat(7, 1fr);
+  display: grid; grid-template-columns: repeat(8, 1fr);
   padding: 6px 2px 26px; gap: 1px; z-index: 50;
 }
 .nav-btn {
-  padding: 6px 2px 4px;
+  padding: 6px 1px 4px;
   border: none; border-radius: 12px;
   background: transparent; color: var(--text2);
-  font-size: 9px; cursor: pointer;
+  font-size: 8px; cursor: pointer;
   transition: all 0.2s; font-weight: 600;
   display: flex; flex-direction: column; align-items: center; gap: 2px;
 }
 .nav-btn .nav-icon { display: none; }
 .nav-btn.active { color: var(--accent); font-weight: 800; border-top: 2px solid var(--accent); }
 .nav-btn:not(.active) { border-top: 2px solid transparent; }
+
+/* Calendar */
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.cal-header { text-align: center; font-size: 9px; font-weight: 700; color: var(--text2); padding: 4px 0 6px; }
+.cal-header.sun { color: #e53935; }
+.cal-header.sat { color: #1976d2; }
+.cal-day { border-radius: 6px; min-height: 52px; padding: 3px; cursor: pointer; background: var(--surface2); transition: background 0.15s; position: relative; }
+.cal-day:active { background: var(--border); }
+.cal-day.other-month { opacity: 0.3; pointer-events: none; }
+.cal-day.today .cal-day-num { background: var(--accent); color: #fff; border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; margin: 0 auto 2px; }
+.cal-day.has-plan { background: #fff3e8; border: 1px solid #ffcc99; }
+.cal-day-num { font-size: 10px; font-weight: 700; text-align: center; margin-bottom: 2px; }
+.cal-day.sun .cal-day-num { color: #e53935; }
+.cal-day.sat .cal-day-num { color: #1976d2; }
+.cal-meal-chip { font-size: 7px; line-height: 1.4; color: var(--text2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cal-nav-btn { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 6px 14px; font-size: 14px; font-weight: 700; cursor: pointer; color: var(--text); }
 
 /* Cards */
 .card { background: var(--surface); border-radius: 14px; padding: 16px; border: 1px solid var(--border); margin-bottom: 12px; }
@@ -550,9 +566,34 @@ textarea.input { resize: none; min-height: 80px; }
     </div>
 
     <div id="plan-content"></div>
-    <div id="plan-share-btns" style="display:none;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">
-      <button class="btn" style="background:var(--surface2);border:1px solid var(--border);margin-top:0" onclick="sharePlanLink()">リンクをシェア</button>
-      <button class="btn" style="background:var(--surface2);border:1px solid var(--border);margin-top:0" onclick="sharePlanText()">テキストをシェア</button>
+    <div id="plan-share-btns" style="display:none;gap:8px;margin-top:12px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <button class="btn" style="background:var(--surface2);border:1px solid var(--border);margin-top:0" onclick="sharePlanLink()">リンクをシェア</button>
+        <button class="btn" style="background:var(--surface2);border:1px solid var(--border);margin-top:0" onclick="sharePlanText()">テキストをシェア</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:8px;align-items:center">
+        <input type="date" id="plan-cal-date" class="input" style="margin:0;font-size:14px">
+        <button class="btn btn-primary" style="margin-top:0;white-space:nowrap" onclick="registerPlanToCalendar()">カレンダーに登録</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- カレンダータブ -->
+  <div id="tab-calendar" style="display:none">
+    <h1>カレンダー</h1>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <button class="cal-nav-btn" onclick="calPrevMonth()">‹</button>
+      <span id="cal-month-label" style="font-size:17px;font-weight:800"></span>
+      <button class="cal-nav-btn" onclick="calNextMonth()">›</button>
+    </div>
+    <div id="cal-grid" class="cal-grid" style="margin-bottom:12px"></div>
+    <div id="cal-day-panel" style="display:none" class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <span id="cal-panel-date" style="font-size:15px;font-weight:800"></span>
+        <button id="cal-delete-btn" onclick="deleteDayPlan()" style="display:none;background:none;border:1px solid var(--red);border-radius:6px;padding:3px 10px;font-size:12px;color:var(--red);cursor:pointer">削除</button>
+      </div>
+      <div id="cal-panel-meals"></div>
+      <div id="cal-panel-note" style="display:none;font-size:12px;color:var(--text2);margin-top:8px;padding-top:8px;border-top:1px solid var(--border)"></div>
     </div>
   </div>
 
@@ -959,6 +1000,19 @@ textarea.input { resize: none; min-height: 80px; }
   </div>
 </div>
 
+<!-- Plan Edit Modal -->
+<div class="modal-bg" id="plan-edit-modal" onclick="closePlanEditModal(event)" style="display:none">
+  <div class="modal">
+    <div class="modal-title">献立を編集</div>
+    <div id="plan-edit-day-label" style="font-size:14px;font-weight:700;color:var(--text2);margin-bottom:12px"></div>
+    <div id="plan-edit-fields"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:16px">
+      <button class="btn" style="background:var(--surface2);border:1px solid var(--border)" onclick="closePlanEditModal()">キャンセル</button>
+      <button class="btn btn-primary" style="margin-top:0" onclick="savePlanEdit()">保存</button>
+    </div>
+  </div>
+</div>
+
 <!-- Bottom Nav -->
 <div class="bottom-nav">
   <button class="nav-btn active" id="btn-ing-add" onclick="showTab('ing-add')">
@@ -969,6 +1023,9 @@ textarea.input { resize: none; min-height: 80px; }
   </button>
   <button class="nav-btn" id="btn-plan" onclick="showTab('plan')">
     <span class="nav-icon"></span>献立
+  </button>
+  <button class="nav-btn" id="btn-calendar" onclick="showTab('calendar')">
+    <span class="nav-icon"></span>カレンダー
   </button>
   <button class="nav-btn" id="btn-shopping" onclick="showTab('shopping')">
     <span class="nav-icon"></span>買い物
@@ -1170,7 +1227,7 @@ async function signOut() {
 }
 
 // App
-const TABS = ['ing-add','ing-stock','plan','shopping','recipes','add-recipe','mypage']
+const TABS = ['ing-add','ing-stock','plan','calendar','shopping','recipes','add-recipe','mypage']
 function safeGet(key) {
   try { return JSON.parse(localStorage.getItem(key) || '[]') } catch { return [] }
 }
@@ -1199,6 +1256,7 @@ function showTab(tab) {
   if (tab === 'shopping') renderShopping()
   if (tab === 'mypage') renderMyPage()
   if (tab === 'ing-stock') renderIngredientStock()
+  if (tab === 'calendar') renderCalendar()
   if (tab === 'plan') { renderPlanIngSummary(); const sl = document.getElementById('plan-servings-label'); if(sl) sl.textContent = planServings + '人' }
 }
 
@@ -1982,12 +2040,21 @@ function renderPlan(plan, meals) {
   currentPlan = plan
   const mealKeys = meals || ['朝','昼','夜']
   document.getElementById('plan-share-btns').style.display = 'grid'
+  // 日付ピッカーのデフォルトを今日に
+  const dateEl = document.getElementById('plan-cal-date')
+  if (dateEl && !dateEl.value) {
+    const t = new Date()
+    dateEl.value = `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`
+  }
   const el = document.getElementById('plan-content')
   el.innerHTML = `
     <button class="btn btn-primary" onclick="generatePlan()" style="margin-bottom:14px">再生成</button>
-    ${plan.map(p => `
+    ${plan.map((p, idx) => `
       <div class="meal-item">
-        <div class="meal-day">${p.day}</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <div class="meal-day" style="margin:0">${p.day}</div>
+          <button onclick="openPlanEdit(${idx})" style="background:none;border:1px solid var(--border);border-radius:6px;padding:2px 10px;font-size:12px;cursor:pointer;color:var(--text2)">編集</button>
+        </div>
         <div style="display:grid;gap:4px;margin:6px 0">
           ${mealKeys.map(m => `<div><span style="font-size:11px;color:var(--text2)">${m}</span> <span class="meal-name" style="font-size:14px">${p.meals?.[m]||'—'}</span></div>`).join('')}
         </div>
@@ -1996,6 +2063,140 @@ function renderPlan(plan, meals) {
       </div>
     `).join('')}
   `
+}
+
+// 献立編集
+let editingPlanDayIdx = -1
+function openPlanEdit(dayIdx) {
+  editingPlanDayIdx = dayIdx
+  const p = currentPlan[dayIdx]
+  document.getElementById('plan-edit-day-label').textContent = p.day
+  const mealKeys = [...planMeals]
+  document.getElementById('plan-edit-fields').innerHTML = mealKeys.map(m =>
+    `<div style="margin-bottom:10px">
+      <div style="font-size:12px;color:var(--text2);margin-bottom:4px;font-weight:700">${m}</div>
+      <input class="input" id="plan-edit-${m}" value="${(p.meals?.[m]||'').replace(/"/g,'&quot;')}" style="margin:0" placeholder="${m}の料理名">
+    </div>`
+  ).join('')
+  document.getElementById('plan-edit-modal').style.display = 'flex'
+}
+
+function closePlanEditModal(e) {
+  if (e && e.target !== e.currentTarget) return
+  document.getElementById('plan-edit-modal').style.display = 'none'
+}
+
+function savePlanEdit() {
+  if (editingPlanDayIdx < 0 || !currentPlan) return
+  const p = currentPlan[editingPlanDayIdx]
+  if (!p.meals) p.meals = {}
+  ;[...planMeals].forEach(m => {
+    const el = document.getElementById('plan-edit-' + m)
+    if (el) p.meals[m] = el.value.trim() || '—'
+  })
+  renderPlan(currentPlan, [...planMeals])
+  document.getElementById('plan-edit-modal').style.display = 'none'
+}
+
+// カレンダー
+let calYear = new Date().getFullYear()
+let calMonth = new Date().getMonth()
+let selectedCalDay = null
+
+function getCalendarMeals() {
+  try { return JSON.parse(localStorage.getItem('calendarMeals') || '{}') } catch { return {} }
+}
+function saveCalendarMealsData(data) {
+  localStorage.setItem('calendarMeals', JSON.stringify(data))
+}
+
+function renderCalendar() {
+  const calData = getCalendarMeals()
+  document.getElementById('cal-month-label').textContent = `${calYear}年${calMonth + 1}月`
+  const dowLabels = ['日','月','火','水','木','金','土']
+  const dowClass = ['sun','','','','','','sat']
+  const firstDow = new Date(calYear, calMonth, 1).getDay()
+  const lastDate = new Date(calYear, calMonth + 1, 0).getDate()
+  const today = new Date()
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`
+
+  let html = dowLabels.map((d, i) => `<div class="cal-header ${dowClass[i]}">${d}</div>`).join('')
+  for (let i = 0; i < firstDow; i++) html += '<div></div>'
+  for (let d = 1; d <= lastDate; d++) {
+    const dateStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`
+    const entry = calData[dateStr]
+    const dow = (firstDow + d - 1) % 7
+    const dowCls = dow === 0 ? 'sun' : dow === 6 ? 'sat' : ''
+    const chips = entry ? Object.entries(entry.meals || {}).map(([k,v]) =>
+      `<div class="cal-meal-chip">${k}:${v}</div>`
+    ).join('') : ''
+    html += `<div class="cal-day ${entry ? 'has-plan' : ''} ${dateStr === todayStr ? 'today' : ''} ${dowCls}" onclick="showCalDay('${dateStr}')">
+      <div class="cal-day-num">${d}</div>${chips}
+    </div>`
+  }
+  document.getElementById('cal-grid').innerHTML = html
+
+  if (selectedCalDay) showCalDay(selectedCalDay)
+  else document.getElementById('cal-day-panel').style.display = 'none'
+}
+
+function showCalDay(dateStr) {
+  selectedCalDay = dateStr
+  const calData = getCalendarMeals()
+  const entry = calData[dateStr]
+  const [y, m, d] = dateStr.split('-')
+  document.getElementById('cal-panel-date').textContent = `${y}年${Number(m)}月${Number(d)}日`
+  const mealsEl = document.getElementById('cal-panel-meals')
+  const noteEl = document.getElementById('cal-panel-note')
+  const delBtn = document.getElementById('cal-delete-btn')
+  if (entry) {
+    mealsEl.innerHTML = Object.entries(entry.meals || {}).map(([k,v]) =>
+      `<div style="padding:5px 0;border-bottom:1px solid var(--border);font-size:14px"><span style="color:var(--text2);font-size:12px;min-width:24px;display:inline-block">${k}</span> ${v}</div>`
+    ).join('')
+    if (entry.note) { noteEl.textContent = entry.note; noteEl.style.display = 'block' }
+    else noteEl.style.display = 'none'
+    delBtn.style.display = 'block'
+  } else {
+    mealsEl.innerHTML = '<div style="color:var(--text2);font-size:13px;padding:4px 0">献立の登録なし</div>'
+    noteEl.style.display = 'none'
+    delBtn.style.display = 'none'
+  }
+  document.getElementById('cal-day-panel').style.display = 'block'
+}
+
+function calPrevMonth() {
+  calMonth--; if (calMonth < 0) { calMonth = 11; calYear-- }
+  selectedCalDay = null; renderCalendar()
+}
+function calNextMonth() {
+  calMonth++; if (calMonth > 11) { calMonth = 0; calYear++ }
+  selectedCalDay = null; renderCalendar()
+}
+
+function deleteDayPlan() {
+  if (!selectedCalDay) return
+  const calData = getCalendarMeals()
+  delete calData[selectedCalDay]
+  saveCalendarMealsData(calData)
+  selectedCalDay = null
+  renderCalendar()
+  notify('削除しました')
+}
+
+function registerPlanToCalendar() {
+  if (!currentPlan || currentPlan.length === 0) { notify('先に献立を生成してください'); return }
+  const dateInput = document.getElementById('plan-cal-date')
+  if (!dateInput.value) { notify('登録する開始日を選択してください'); return }
+  const calData = getCalendarMeals()
+  const start = new Date(dateInput.value + 'T00:00:00')
+  currentPlan.forEach((dayPlan, i) => {
+    const d = new Date(start); d.setDate(d.getDate() + i)
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+    calData[key] = { meals: { ...dayPlan.meals }, note: dayPlan.note || '' }
+  })
+  saveCalendarMealsData(calData)
+  notify('カレンダーに登録しました！')
+  showTab('calendar')
 }
 
 // 買い物リスト
