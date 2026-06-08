@@ -244,6 +244,17 @@ textarea.input { resize: none; min-height: 80px; }
 .user-email { font-size: 11px; color: var(--text2); }
 .btn-logout { background: none; border: 1px solid var(--border); border-radius: 8px; padding: 4px 10px; font-size: 11px; color: var(--text2); cursor: pointer; }
 
+/* Ingredient stock */
+.ing-cat-btn { flex:0 0 auto; padding:6px 14px; border-radius:20px; border:1.5px solid var(--border); background:var(--surface); font-size:13px; font-weight:600; cursor:pointer; color:var(--text2); white-space:nowrap; }
+.ing-cat-btn.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+.ing-section-title { font-size:11px; font-weight:700; color:var(--text2); letter-spacing:0.5px; text-transform:uppercase; margin:14px 0 6px; }
+.ing-stock-chip { display:inline-flex; align-items:center; gap:4px; padding:5px 12px; border-radius:20px; font-size:13px; font-weight:600; margin:3px; border:1.5px solid var(--border); background:var(--surface); color:var(--text); cursor:pointer; transition:all 0.15s; }
+.ing-stock-chip.has { background:var(--surface2); border-color:var(--accent); color:var(--accent); }
+.ing-stock-chip .chip-del { font-size:11px; color:var(--text2); margin-left:2px; }
+.staple-chip { display:inline-flex; align-items:center; padding:5px 12px; border-radius:20px; font-size:13px; font-weight:600; margin:3px; border:1.5px solid var(--border); cursor:pointer; transition:all 0.15s; }
+.staple-chip.in-stock { background:var(--surface2); border-color:var(--green); color:var(--green); }
+.staple-chip.out-stock { background:transparent; border-color:var(--border); color:var(--text2); opacity:0.6; }
+
 /* Mypage */
 .mypage-avatar { width: 72px; height: 72px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), #c05f1f); display: flex; align-items: center; justify-content: center; font-size: 32px; margin: 0 auto 12px; box-shadow: 0 4px 14px rgba(224,123,57,0.35); }
 .mypage-email { font-size: 14px; font-weight: 600; color: var(--text); text-align: center; margin-bottom: 4px; word-break: break-all; }
@@ -362,22 +373,32 @@ textarea.input { resize: none; min-height: 80px; }
 
   <!-- 食材在庫タブ -->
   <div id="tab-ing-stock" style="display:none">
-    <h1>📦 食材在庫</h1>
-    <div class="card">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-        <div class="section-title" style="margin:0">登録中の食材</div>
-        <span id="ing-count" style="font-size:12px;color:var(--text2);font-weight:600"></span>
-      </div>
-      <div id="ing-tags" style="min-height:40px"></div>
-      <div id="ing-empty" style="display:none;font-size:13px;color:var(--text2);padding:12px 0;text-align:center">
-        食材が登録されていません。<br>「食材登録」タブから追加してください。
-      </div>
+    <h1>食材在庫</h1>
+
+    <!-- 検索 -->
+    <input class="input" id="ing-search" placeholder="食材を検索..." style="margin-bottom:10px" oninput="renderIngredientStock()">
+
+    <!-- カテゴリフィルター -->
+    <div id="ing-cat-filter" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin-bottom:12px;scrollbar-width:none"></div>
+
+    <!-- 常備品（固定） -->
+    <div class="card" style="margin-bottom:12px">
+      <div class="section-title" style="margin-bottom:8px">常備品</div>
+      <div id="ing-staples"></div>
     </div>
-    <button class="btn btn-primary btn-green" onclick="showTab('plan');generatePlan()" style="margin-top:4px;">
-      🍳 この食材で献立を作る
+
+    <!-- 登録食材（カテゴリ別） -->
+    <div id="ing-list-by-cat"></div>
+
+    <div id="ing-empty" style="display:none;font-size:13px;color:var(--text2);padding:20px;text-align:center;background:var(--surface);border-radius:14px;border:1px solid var(--border);margin-bottom:12px">
+      登録されている食材がありません。<br>「食材登録」タブから追加してください。
+    </div>
+
+    <button class="btn btn-primary btn-green" onclick="showTab('plan');generatePlan()" style="margin-top:0;">
+      この食材で献立を作る
     </button>
-    <button class="btn btn-primary" style="background:var(--text2);margin-top:8px" onclick="showTab('ing-add')">
-      ← 食材を追加する
+    <button class="btn" style="background:var(--surface2);border:1px solid var(--border);width:100%;margin-top:8px" onclick="showTab('ing-add')">
+      食材を追加する
     </button>
   </div>
 
@@ -1180,14 +1201,95 @@ function renderIngredients() {
   ).join('')
 }
 
+// 食材カテゴリ定義
+const ING_CAT_MAP = {
+  '野菜': ['にんじん','玉ねぎ','キャベツ','大根','じゃがいも','トマト','きゅうり','ほうれん草','ブロッコリー','ナス','なす','ピーマン','もやし','白菜','ごぼう','れんこん','かぼちゃ','さつまいも','長ねぎ','ねぎ','しょうが','生姜','にんにく','セロリ','パプリカ','小松菜','水菜','春菊','オクラ','枝豆','アスパラ','ズッキーニ','しいたけ','えのき','しめじ','なめこ','マッシュルーム'],
+  '肉・魚': ['鶏','豚','牛','合いびき','ひき肉','鮭','さけ','ぶり','鯖','さば','えび','イカ','タコ','たこ','あさり','ツナ','ベーコン','ウインナー','ハム','ちくわ','かまぼこ','魚','肉','シーフード','サーモン','マグロ','たら','アジ','サンマ'],
+  '卵・乳製品': ['卵','牛乳','バター','チーズ','ヨーグルト','生クリーム','豆腐','豆乳','納豆','油揚げ','厚揚げ','がんもどき'],
+  '調味料': ['醤油','しょうゆ','みりん','酒','塩','砂糖','味噌','みそ','ケチャップ','マヨネーズ','ソース','オリーブオイル','ごま油','サラダ油','酢','こしょう','胡椒','だし','コンソメ','鶏ガラ','豆板醤','甜麺醤','オイスター','ポン酢','ごま','片栗粉','小麦粉','パン粉','めんつゆ','ドレッシング'],
+  '穀物・麺': ['米','ご飯','パスタ','うどん','そば','ラーメン','そうめん','スパゲティ','マカロニ','餃子の皮','食パン','パン','麺'],
+}
+const STAPLE_LIST = ['醤油','みりん','酒','塩','砂糖','ごま油','サラダ油','酢','こしょう','片栗粉','小麦粉','だし','みそ','ケチャップ','マヨネーズ']
+
+function classifyIngredient(name) {
+  for (const [cat, keywords] of Object.entries(ING_CAT_MAP)) {
+    if (keywords.some(k => name.includes(k))) return cat
+  }
+  return 'その他'
+}
+
+let ingActiveCat = '全て'
+
 function renderIngredientStock() {
-  renderIngredients()
-  const countEl = document.getElementById('ing-count')
+  const search = (document.getElementById('ing-search')?.value || '').trim().toLowerCase()
+  const allCats = ['全て', ...Object.keys(ING_CAT_MAP), 'その他']
+
+  // カテゴリフィルター
+  const catFilter = document.getElementById('ing-cat-filter')
+  if (catFilter) {
+    catFilter.innerHTML = allCats.map(c =>
+      `<button class="ing-cat-btn ${ingActiveCat === c ? 'active' : ''}" onclick="setIngCat('${c}')">${c}</button>`
+    ).join('')
+  }
+
+  // 常備品
+  const staplesEl = document.getElementById('ing-staples')
+  if (staplesEl) {
+    staplesEl.innerHTML = STAPLE_LIST.map(s => {
+      const has = ingredients.some(i => i.includes(s) || s.includes(i))
+      return `<span class="staple-chip ${has ? 'in-stock' : 'out-stock'}" onclick="toggleStaple('${s}')">${has ? '✓ ' : '+ '}${s}</span>`
+    }).join('')
+  }
+
+  // 登録食材をフィルター
+  let filtered = ingredients.filter(i => !search || i.toLowerCase().includes(search))
+  if (ingActiveCat !== '全て') filtered = filtered.filter(i => classifyIngredient(i) === ingActiveCat)
+
   const emptyEl = document.getElementById('ing-empty')
-  const tagsEl = document.getElementById('ing-tags')
-  if (countEl) countEl.textContent = ingredients.length > 0 ? `${ingredients.length}品` : ''
-  if (emptyEl) emptyEl.style.display = ingredients.length === 0 ? 'block' : 'none'
-  if (tagsEl) tagsEl.style.display = ingredients.length === 0 ? 'none' : 'block'
+  const listEl = document.getElementById('ing-list-by-cat')
+
+  if (!filtered.length) {
+    if (emptyEl) emptyEl.style.display = 'block'
+    if (listEl) listEl.innerHTML = ''
+    return
+  }
+  if (emptyEl) emptyEl.style.display = 'none'
+
+  // カテゴリ別にグループ化
+  const groups = {}
+  filtered.forEach(ing => {
+    const cat = classifyIngredient(ing)
+    if (!groups[cat]) groups[cat] = []
+    groups[cat].push(ing)
+  })
+
+  const catOrder = [...Object.keys(ING_CAT_MAP), 'その他']
+  if (listEl) {
+    listEl.innerHTML = catOrder.filter(c => groups[c]).map(cat => `
+      <div class="ing-section-title">${cat}</div>
+      <div style="margin-bottom:4px">${groups[cat].map(ing => {
+        const idx = ingredients.indexOf(ing)
+        return `<span class="ing-stock-chip has"><span>${ing}</span><span class="chip-del" onclick="removeIngredient(${idx})">✕</span></span>`
+      }).join('')}</div>
+    `).join('')
+  }
+}
+
+function setIngCat(cat) {
+  ingActiveCat = cat
+  renderIngredientStock()
+}
+
+function toggleStaple(name) {
+  const idx = ingredients.findIndex(i => i === name)
+  if (idx >= 0) {
+    removeIngredient(idx)
+  } else {
+    ingredients.push(name)
+    localStorage.setItem('ingredients', JSON.stringify(ingredients))
+    renderIngredients()
+  }
+  renderIngredientStock()
 }
 
 function addIngredient() {
@@ -1197,12 +1299,14 @@ function addIngredient() {
   localStorage.setItem('ingredients', JSON.stringify(ingredients))
   input.value = ''
   renderIngredients()
+  if (document.getElementById('tab-ing-stock').style.display !== 'none') renderIngredientStock()
 }
 
 function removeIngredient(i) {
   ingredients.splice(i, 1)
   localStorage.setItem('ingredients', JSON.stringify(ingredients))
   renderIngredients()
+  if (document.getElementById('tab-ing-stock').style.display !== 'none') renderIngredientStock()
 }
 
 document.getElementById('ing-input').addEventListener('keydown', e => {
