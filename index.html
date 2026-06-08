@@ -1435,6 +1435,14 @@ function classifyIngredient(name) {
 
 let ingActiveCat = '全て'
 
+// 常備品在庫（ingredients配列とは独立して管理）
+function getStapleStock() {
+  try { return new Set(JSON.parse(localStorage.getItem('stapleStock') || '[]')) } catch { return new Set() }
+}
+function saveStapleStock(set) {
+  localStorage.setItem('stapleStock', JSON.stringify([...set]))
+}
+
 function renderIngredientStock() {
   const search = (document.getElementById('ing-search')?.value || '').trim().toLowerCase()
   const allCats = ['全て', ...Object.keys(ING_CAT_MAP), 'その他']
@@ -1451,11 +1459,12 @@ function renderIngredientStock() {
   const staplesEl = document.getElementById('ing-staples')
   if (staplesEl) {
     const groups = getStaples()
+    const stock = getStapleStock()
     staplesEl.innerHTML = groups.map(g => `
       <div style="font-size:11px;font-weight:700;color:var(--text2);margin:8px 0 4px">${g.label}</div>
       <div>${g.items.map(s => {
-        const has = ingredients.some(i => i === s || i.includes(s) || s.includes(i))
-        return `<span class="staple-chip ${has ? 'in-stock' : 'out-stock'}" onclick="toggleStaple('${s}')"><span class="chip-check">${has ? '✓' : ''}</span>${s}</span>`
+        const has = stock.has(s)
+        return `<span class="staple-chip ${has ? 'in-stock' : 'out-stock'}" onclick="toggleStaple('${s.replace(/'/g,"\\'")}')"><span class="chip-check">${has ? '✓' : ''}</span>${s}</span>`
       }).join('')}</div>
     `).join('')
   }
@@ -1500,14 +1509,10 @@ function setIngCat(cat) {
 }
 
 function toggleStaple(name) {
-  const idx = ingredients.findIndex(i => i === name)
-  if (idx >= 0) {
-    removeIngredient(idx)
-  } else {
-    ingredients.push(name)
-    localStorage.setItem('ingredients', JSON.stringify(ingredients))
-    renderIngredients()
-  }
+  const stock = getStapleStock()
+  if (stock.has(name)) stock.delete(name)
+  else stock.add(name)
+  saveStapleStock(stock)
   renderIngredientStock()
 }
 
@@ -2032,10 +2037,13 @@ async function generatePlan() {
   const planEl = document.getElementById('plan-content')
   planEl.innerHTML = '<div class="loading">AIが献立を考えています...</div>'
   const priority = [...planPriorityIngs]
+  // 登録食材 + 常備品在庫を結合してAPIに渡す
+  const stapleStockArr = [...getStapleStock()]
+  const allIngredients = [...new Set([...ingredients, ...stapleStockArr])]
   // レシピは名前だけ送る（データ量削減）
   const recipeNames = (recipes || []).slice(0, 8).map(r => ({ name: r.name }))
   try {
-    const text = await callApi({ type: 'plan', ingredients, recipes: recipeNames, meals, servings: planServings, priority })
+    const text = await callApi({ type: 'plan', ingredients: allIngredients, recipes: recipeNames, meals, servings: planServings, priority })
     if (!text) throw new Error('APIからの応答が空です')
     // JSON配列を抽出
     const match = text.match(/\[[\s\S]*?\](?=\s*$)/) || text.match(/\[[\s\S]*\]/)
