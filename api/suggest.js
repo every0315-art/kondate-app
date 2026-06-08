@@ -11,16 +11,16 @@ export default async function handler(req, res) {
 
   if (type === 'plan') {
     const { meals, servings, priority } = req.body || {}
-    const mealList = (meals && meals.length) ? meals : ['朝','昼','夜']
-    const servingsNum = servings || 2
-    const priorityList = (priority && priority.length) ? priority : []
+    const mealList = (Array.isArray(meals) && meals.length) ? meals : ['朝','昼','夜']
+    const servingsNum = Number(servings) || 2
+    const priorityList = Array.isArray(priority) ? priority : []
     const topRecipes = (recipes || []).slice(0, 10)
     const recipeList = topRecipes.length ? `\n登録レシピ:${topRecipes.map(r => r.name).join('、')}` : ''
     const priorityNote = priorityList.length ? `\n優先使用食材:${priorityList.join('、')}（必ずこれらを使う料理を含める）` : ''
-    const mealKeys = mealList.reduce((o, m) => { o[m] = '料理名'; return o }, {})
+    const mealExample = mealList.map(m => `"${m}":"料理名"`).join(',')
     system = `献立アドバイザー。3日分の献立をJSONのみで返す。前置き不要。対象の食事:${mealList.join('・')}、${servingsNum}人分。
-[{"day":"1日目","meals":${JSON.stringify(mealKeys)},"note":"コメント","missing":["不足食材"]}]`
-    messages = [{ role: 'user', content: `食材:${ingredients?.join('、') || 'なし'}${recipeList}${priorityNote}\n3日分の献立をJSONで。登録レシピ優先。対象の食事は${mealList.join('・')}のみ。` }]
+[{"day":"1日目","meals":{${mealExample}},"note":"コメント","missing":["不足食材"]}]`
+    messages = [{ role: 'user', content: `食材:${(ingredients || []).join('、') || 'なし'}${recipeList}${priorityNote}\n3日分の献立をJSONで。登録レシピ優先。対象の食事は${mealList.join('・')}のみ。` }]
 
   } else if (type === 'search') {
     system = `あなたは料理レシピの専門家です。指定された食材を使った家庭料理のレシピを3件提案してください。
@@ -53,8 +53,8 @@ export default async function handler(req, res) {
   }
 
   try {
-    const maxTokensMap = { plan: 800, search: 1200, receipt: 300, fridge: 400, recipe: 400 }
-    const body = { model: 'claude-haiku-4-5', max_tokens: maxTokensMap[type] || 800, system, messages }
+    const maxTokensMap = { plan: 1200, search: 1200, receipt: 300, fridge: 400, recipe: 400 }
+    const body = { model: 'claude-haiku-4-5-20251001', max_tokens: maxTokensMap[type] || 800, system, messages }
     if (tools) body.tools = tools
     if (toolChoice) body.tool_choice = toolChoice
 
