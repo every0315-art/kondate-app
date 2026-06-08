@@ -1412,6 +1412,7 @@ function notify(msg) {
 // 食材管理
 function renderIngredients() {
   const el = document.getElementById('ing-tags')
+  if (!el) return
   el.innerHTML = ingredients.map((ing, i) =>
     `<span class="tag tag-remove" onclick="removeIngredient(${i})">✕ ${ing}</span>`
   ).join('')
