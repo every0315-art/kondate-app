@@ -31,6 +31,13 @@ export default async function handler(req, res) {
       { type: 'text', text: 'このレシートから料理に使える食材をJSON配列で抽出してください。' }
     ]}]
 
+  } else if (type === 'fridge') {
+    system = `冷蔵庫の写真から見える食材・食品を全て抽出し、JSON配列で返してください。野菜、肉、魚、乳製品、飲み物、調味料など見えるものを全て含めてください。食材名のみ、数量や状態は不要。形式: ["食材1","食材2"] 前置き不要。`
+    messages = [{ role: 'user', content: [
+      { type: 'image', source: { type: 'base64', media_type: imageType, data: imageBase64 } },
+      { type: 'text', text: 'この冷蔵庫の写真から見える食材・食品を全てJSON配列で抽出してください。' }
+    ]}]
+
   } else if (type === 'recipe') {
     system = `料理レシピの画像から情報を抽出し、以下のJSON形式のみで返してください。前置き不要。材料は全て分量付きで省略せず記載。何人分かも記載。
 {"name":"料理名","servings":"2人分","ingredients":"材料1 分量,材料2 分量,材料3 分量（全材料省略なし）","steps":"作り方の要約（2〜3文）"}
@@ -42,7 +49,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const maxTokensMap = { plan: 800, search: 1200, receipt: 300, recipe: 400 }
+    const maxTokensMap = { plan: 800, search: 1200, receipt: 300, fridge: 400, recipe: 400 }
     const body = { model: 'claude-haiku-4-5', max_tokens: maxTokensMap[type] || 800, system, messages }
     if (tools) body.tools = tools
     if (toolChoice) body.tool_choice = toolChoice

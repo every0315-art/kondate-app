@@ -316,6 +316,20 @@ textarea.input { resize: none; min-height: 80px; }
   <div id="tab-ingredients">
     <h1>🥕 食材管理</h1>
 
+    <!-- 冷蔵庫写真読み取り -->
+    <div class="card" style="border:2px dashed #4CAF50;background:rgba(76,175,80,0.05)">
+      <div class="section-title">🧊 冷蔵庫から自動読み取り</div>
+      <p style="font-size:13px;color:var(--text2);margin:0 0 10px">冷蔵庫の写真を撮影・選択すると食材を自動で抽出します</p>
+      <input type="file" id="fridge-input" accept="image/*" style="display:none" onchange="readFridgePhoto(event)">
+      <button class="btn btn-primary" style="background:#4CAF50;margin-top:0" onclick="document.getElementById('fridge-input').click()">
+        🧊 冷蔵庫を撮影・選択
+      </button>
+      <div id="fridge-preview" style="margin-top:10px;display:none">
+        <img id="fridge-img" style="width:100%;border-radius:8px;max-height:200px;object-fit:cover">
+        <div id="fridge-status" style="font-size:13px;color:var(--text2);margin-top:6px;text-align:center"></div>
+      </div>
+    </div>
+
     <!-- レシート読み取り -->
     <div class="card" style="border:2px dashed var(--accent);background:rgba(224,123,57,0.05)">
       <div class="section-title">📷 レシートから自動読み取り</div>
@@ -1738,6 +1752,57 @@ async function readReceipt(event) {
     notify(`${added}件の食材を追加しました！`)
     setTimeout(() => {
       if (confirm(`${added}件の食材を追加しました。\nそのまま献立を作りますか？`)) {
+        showTab('plan'); generatePlan()
+      }
+    }, 500)
+  } catch (e) {
+    status.textContent = `❌ エラー: ${e.message}`
+    status.style.color = 'var(--red)'
+  }
+  event.target.value = ''
+}
+
+// 冷蔵庫写真読み取り
+async function readFridgePhoto(event) {
+  const file = event.target.files[0]
+  if (!file) return
+  const preview = document.getElementById('fridge-preview')
+  const img = document.getElementById('fridge-img')
+  const status = document.getElementById('fridge-status')
+  preview.style.display = 'block'
+  img.src = URL.createObjectURL(file)
+  status.style.color = 'var(--text2)'
+  status.textContent = '🤖 冷蔵庫の食材を解析中...'
+  const base64 = await new Promise(resolve => {
+    const blobUrl = URL.createObjectURL(file)
+    const tmpImg = new Image()
+    tmpImg.onload = () => {
+      const canvas = document.createElement('canvas')
+      canvas.width = tmpImg.width
+      canvas.height = tmpImg.height
+      canvas.getContext('2d').drawImage(tmpImg, 0, 0)
+      URL.revokeObjectURL(blobUrl)
+      resolve(canvas.toDataURL('image/jpeg', 0.85).split(',')[1])
+    }
+    tmpImg.src = blobUrl
+  })
+  try {
+    const text = await callApi({ type: 'fridge', imageBase64: base64, imageType: 'image/jpeg' })
+    const match = text.match(/\[[\s\S]*\]/)
+    if (!match) throw new Error('食材を読み取れませんでした')
+    const extracted = JSON.parse(match[0])
+    let added = 0
+    extracted.forEach(item => {
+      const clean = item.trim()
+      if (clean && !ingredients.includes(clean)) { ingredients.push(clean); added++ }
+    })
+    localStorage.setItem('ingredients', JSON.stringify(ingredients))
+    renderIngredients()
+    status.textContent = `✅ ${extracted.length}品目を認識、${added}件を追加しました`
+    status.style.color = 'var(--green)'
+    notify(`冷蔵庫から${added}件の食材を追加しました！`)
+    setTimeout(() => {
+      if (confirm(`冷蔵庫から${added}件の食材を追加しました。\nそのまま献立を作りますか？`)) {
         showTab('plan'); generatePlan()
       }
     }, 500)
