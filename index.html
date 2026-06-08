@@ -285,6 +285,8 @@ textarea.input { resize: none; min-height: 80px; }
 .ing-stock-chip { display:inline-flex; align-items:center; gap:4px; padding:5px 12px; border-radius:20px; font-size:13px; font-weight:600; margin:3px; border:1.5px solid var(--border); background:var(--surface); color:var(--text); cursor:pointer; transition:all 0.15s; }
 .ing-stock-chip.has { background:var(--surface2); border-color:var(--accent); color:var(--accent); }
 .ing-stock-chip .chip-del { font-size:11px; color:var(--text2); margin-left:2px; }
+.ing-stock-chip .chip-pin { font-size:11px; margin-left:4px; cursor:pointer; opacity:0.6; }
+.ing-stock-chip .chip-pin:hover { opacity:1; }
 .staple-chip { display:inline-flex; align-items:center; gap:5px; padding:5px 12px; border-radius:20px; font-size:13px; font-weight:600; margin:3px; border:1.5px solid var(--border); cursor:pointer; transition:all 0.18s; user-select:none; }
 .staple-chip.in-stock { background:#e8f5e9; border-color:var(--green); color:#2e7d32; }
 .staple-chip.out-stock { background:var(--surface); border-color:var(--border); color:var(--text2); }
@@ -1507,7 +1509,8 @@ function renderIngredientStock() {
     listEl.innerHTML = catOrder.filter(c => groups[c]).map(cat => `
       <div class="ing-section-title">${cat}</div>
       <div style="margin-bottom:4px">${groups[cat].map(ing => {
-        return `<span class="ing-stock-chip has"><span>${ing}</span><span class="chip-del" onclick="removeIngredientByName('${ing.replace(/'/g,"\\'")}')">✕</span></span>`
+        const safeIng = ing.replace(/'/g,"\\'")
+        return `<span class="ing-stock-chip has"><span>${ing}</span><span class="chip-pin" title="常備品に追加" onclick="addToStaples('${safeIng}')">📌</span><span class="chip-del" onclick="removeIngredientByName('${safeIng}')">✕</span></span>`
       }).join('')}</div>
     `).join('')
   }
@@ -1542,6 +1545,21 @@ function removeIngredient(i) {
   localStorage.setItem('ingredients', JSON.stringify(ingredients))
   renderIngredients()
   if (document.getElementById('tab-ing-stock').style.display !== 'none') renderIngredientStock()
+}
+
+function addToStaples(name) {
+  const groups = getStaples()
+  // すでに常備品にある場合はスキップ
+  if (groups.some(g => g.items.includes(name))) { notify(`「${name}」はすでに常備品にあります`); return }
+  // カテゴリを判定して対応するグループに追加
+  const cat = classifyIngredient(name)
+  const catToLabel = { '野菜': '野菜', '肉・魚': '肉・加工品', '卵・乳製品': '卵・乳製品', '調味料': '調味料', '穀物・麺': 'パン・主食' }
+  const targetLabel = catToLabel[cat] || 'パン・主食'
+  const group = groups.find(g => g.label === targetLabel) || groups[groups.length - 1]
+  group.items.push(name)
+  saveStaples(groups)
+  notify(`「${name}」を常備品（${group.label}）に追加しました`)
+  renderIngredientStock()
 }
 
 function removeIngredientByName(name) {
