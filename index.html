@@ -2259,9 +2259,10 @@ function renderCalendar() {
     const entry = calData[dateStr]
     const dow = (firstDow + d - 1) % 7
     const dowCls = dow === 0 ? 'sun' : dow === 6 ? 'sat' : ''
-    const chips = entry ? Object.entries(entry.meals || {}).map(([k,v]) =>
-      `<div class="cal-meal-chip">${k}:${v}</div>`
-    ).join('') : ''
+    const chips = entry ? Object.entries(entry.meals || {}).map(([k,v]) => {
+      const main = typeof v === 'object' ? (v['メイン'] || Object.values(v)[0] || '') : v
+      return `<div class="cal-meal-chip">${k}:${main}</div>`
+    }).join('') : ''
     html += `<div class="cal-day ${entry ? 'has-plan' : ''} ${dateStr === todayStr ? 'today' : ''} ${dowCls}" onclick="showCalDay('${dateStr}')">
       <div class="cal-day-num">${d}</div>${chips}
     </div>`
@@ -2282,9 +2283,15 @@ function showCalDay(dateStr) {
   const noteEl = document.getElementById('cal-panel-note')
   const delBtn = document.getElementById('cal-delete-btn')
   if (entry) {
-    mealsEl.innerHTML = Object.entries(entry.meals || {}).map(([k,v]) =>
-      `<div style="padding:5px 0;border-bottom:1px solid var(--border);font-size:14px"><span style="color:var(--text2);font-size:12px;min-width:24px;display:inline-block">${k}</span> ${v}</div>`
-    ).join('')
+    mealsEl.innerHTML = Object.entries(entry.meals || {}).map(([k,v]) => {
+      if (typeof v === 'object' && v !== null) {
+        const dishes = Object.entries(v).map(([dk,dv]) =>
+          `<div style="font-size:13px;padding:2px 0 2px 8px"><span style="font-size:10px;color:var(--text2);background:var(--surface2);border-radius:4px;padding:1px 5px;margin-right:4px">${dk}</span>${dv}</div>`
+        ).join('')
+        return `<div style="padding:5px 0;border-bottom:1px solid var(--border)"><div style="font-size:12px;font-weight:800;color:var(--text2);margin-bottom:2px">${k}</div>${dishes}</div>`
+      }
+      return `<div style="padding:5px 0;border-bottom:1px solid var(--border);font-size:14px"><span style="color:var(--text2);font-size:12px;min-width:24px;display:inline-block">${k}</span> ${v}</div>`
+    }).join('')
     if (entry.note) { noteEl.textContent = entry.note; noteEl.style.display = 'block' }
     else noteEl.style.display = 'none'
     delBtn.style.display = 'block'
