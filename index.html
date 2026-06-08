@@ -2085,13 +2085,37 @@ function renderPlan(plan, meals) {
           <button onclick="openPlanEdit(${idx})" style="background:none;border:1px solid var(--border);border-radius:6px;padding:2px 10px;font-size:12px;cursor:pointer;color:var(--text2)">編集</button>
         </div>
         <div style="display:grid;gap:4px;margin:6px 0">
-          ${mealKeys.map(m => `<div><span style="font-size:11px;color:var(--text2)">${m}</span> <span class="meal-name" style="font-size:14px">${p.meals?.[m]||'—'}</span></div>`).join('')}
+          ${mealKeys.map(m => {
+            const dish = p.meals?.[m] || '—'
+            const linked = dish !== '—'
+              ? `<span class="meal-name" style="font-size:14px;color:var(--accent);cursor:pointer;text-decoration:underline;text-underline-offset:2px" onclick="openRecipeFromPlan('${dish.replace(/'/g,"\\'")}')">` + dish + `</span>`
+              : `<span class="meal-name" style="font-size:14px">—</span>`
+            return `<div><span style="font-size:11px;color:var(--text2)">${m}</span> ${linked}</div>`
+          }).join('')}
         </div>
         ${p.note ? `<div class="meal-note">${p.note}</div>` : ''}
         ${p.missing?.length ? `<div class="meal-note" style="color:var(--accent)">必要: ${p.missing.join('、')}</div>` : ''}
       </div>
     `).join('')}
   `
+}
+
+// 献立の料理名からレシピへ
+function openRecipeFromPlan(dishName) {
+  // 登録レシピに完全一致または部分一致があれば詳細を開く
+  const exact = recipes.find(r => r.name === dishName)
+  const partial = !exact && recipes.find(r =>
+    r.name.includes(dishName) || dishName.includes(r.name)
+  )
+  if (exact || partial) {
+    showTab('recipes')
+    openDetailModal((exact || partial).id)
+  } else {
+    // なければ検索キーワードをセットしてレシピタブへ
+    showTab('recipes')
+    const input = document.getElementById('recipe-search')
+    if (input) { input.value = dishName; renderRecipes() }
+  }
 }
 
 // 献立編集
