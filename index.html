@@ -1209,7 +1209,14 @@ const ING_CAT_MAP = {
   '調味料': ['醤油','しょうゆ','みりん','酒','塩','砂糖','味噌','みそ','ケチャップ','マヨネーズ','ソース','オリーブオイル','ごま油','サラダ油','酢','こしょう','胡椒','だし','コンソメ','鶏ガラ','豆板醤','甜麺醤','オイスター','ポン酢','ごま','片栗粉','小麦粉','パン粉','めんつゆ','ドレッシング'],
   '穀物・麺': ['米','ご飯','パスタ','うどん','そば','ラーメン','そうめん','スパゲティ','マカロニ','餃子の皮','食パン','パン','麺'],
 }
-const STAPLE_LIST = ['醤油','みりん','酒','塩','砂糖','ごま油','サラダ油','酢','こしょう','片栗粉','小麦粉','だし','みそ','ケチャップ','マヨネーズ']
+const STAPLE_GROUPS = [
+  { label: '野菜', items: ['玉ねぎ','にんじん','じゃがいも','キャベツ','大根','長ねぎ','もやし','ほうれん草','ブロッコリー','ミニトマト','にんにく','生姜'] },
+  { label: '肉・加工品', items: ['鶏もも肉','豚こま肉','合いびき肉','ウインナー','ベーコン','ハム','ちくわ'] },
+  { label: '卵・乳製品', items: ['卵','牛乳','バター','チーズ','ヨーグルト'] },
+  { label: 'パン・主食', items: ['食パン','豆腐','納豆','油揚げ'] },
+  { label: '調味料', items: ['醤油','みりん','酒','塩','砂糖','ごま油','サラダ油','酢','こしょう','片栗粉','小麦粉','だし','みそ','ケチャップ','マヨネーズ','めんつゆ'] },
+]
+const STAPLE_LIST = STAPLE_GROUPS.flatMap(g => g.items)
 
 function classifyIngredient(name) {
   for (const [cat, keywords] of Object.entries(ING_CAT_MAP)) {
@@ -1232,13 +1239,16 @@ function renderIngredientStock() {
     ).join('')
   }
 
-  // 常備品
+  // 常備品（グループ別）
   const staplesEl = document.getElementById('ing-staples')
   if (staplesEl) {
-    staplesEl.innerHTML = STAPLE_LIST.map(s => {
-      const has = ingredients.some(i => i.includes(s) || s.includes(i))
-      return `<span class="staple-chip ${has ? 'in-stock' : 'out-stock'}" onclick="toggleStaple('${s}')">${has ? '✓ ' : '+ '}${s}</span>`
-    }).join('')
+    staplesEl.innerHTML = STAPLE_GROUPS.map(g => `
+      <div style="font-size:11px;font-weight:700;color:var(--text2);margin:8px 0 4px">${g.label}</div>
+      <div>${g.items.map(s => {
+        const has = ingredients.some(i => i === s || i.includes(s) || s.includes(i))
+        return `<span class="staple-chip ${has ? 'in-stock' : 'out-stock'}" onclick="toggleStaple('${s}')">${has ? '✓ ' : '+ '}${s}</span>`
+      }).join('')}</div>
+    `).join('')
   }
 
   // 登録食材をフィルター
