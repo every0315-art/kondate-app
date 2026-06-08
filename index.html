@@ -374,17 +374,25 @@ textarea.input { resize: none; min-height: 80px; }
   <div id="tab-ing-add">
     <h1>🥕 食材登録</h1>
 
-    <!-- 冷蔵庫写真読み取り -->
-    <div class="card" style="border:2px dashed #4CAF50;background:rgba(76,175,80,0.05)">
+    <!-- 冷蔵庫スキャン -->
+    <div class="card" style="border:2px dashed var(--green);background:rgba(74,158,107,0.05)">
       <div class="section-title">🧊 冷蔵庫から自動読み取り</div>
-      <p style="font-size:13px;color:var(--text2);margin:0 0 10px">冷蔵庫の写真を撮影・選択すると食材を自動で抽出します</p>
-      <input type="file" id="fridge-input" accept="image/*" style="display:none" onchange="readFridgePhoto(event)">
-      <button class="btn btn-primary" style="background:#4CAF50;margin-top:0" onclick="document.getElementById('fridge-input').click()">
-        🧊 冷蔵庫を撮影・選択
+      <input type="file" id="fridge-input" accept="image/*" capture="environment" style="display:none" onchange="readFridge(event)">
+      <button class="btn btn-primary" style="background:var(--green);margin-top:0" onclick="document.getElementById('fridge-input').click()">
+        📸 冷蔵庫を撮影・選択
       </button>
       <div id="fridge-preview" style="margin-top:10px;display:none">
-        <img id="fridge-img" style="width:100%;border-radius:8px;max-height:200px;object-fit:cover">
+        <img id="fridge-img" style="width:100%;border-radius:8px;max-height:220px;object-fit:cover">
         <div id="fridge-status" style="font-size:13px;color:var(--text2);margin-top:6px;text-align:center"></div>
+        <div id="fridge-select" style="display:none;margin-top:12px">
+          <div style="font-size:12px;color:var(--text2);margin-bottom:8px;font-weight:700">追加する食材をタップして選んでください</div>
+          <div id="fridge-tags" style="margin-bottom:10px"></div>
+          <div style="display:flex;gap:8px;margin-bottom:8px">
+            <button class="btn btn-small" onclick="selectAllFridge(true)" style="flex:1">すべて選択</button>
+            <button class="btn btn-small" onclick="selectAllFridge(false)" style="flex:1">すべて解除</button>
+          </div>
+          <button class="btn btn-primary btn-green" onclick="confirmFridgeIngredients()">✅ 選択した食材を登録</button>
+        </div>
       </div>
     </div>
 
@@ -2399,6 +2407,66 @@ function resizeImageToBase64(file, maxPx = 1200, quality = 0.82) {
     }
     tmpImg.src = blobUrl
   })
+}
+
+let fridgeDetected = []
+
+async function readFridge(event) {
+  const file = event.target.files[0]
+  if (!file) return
+  const preview = document.getElementById('fridge-preview')
+  const img = document.getElementById('fridge-img')
+  const status = document.getElementById('fridge-status')
+  const selectPanel = document.getElementById('fridge-select')
+  preview.style.display = 'block'
+  selectPanel.style.display = 'none'
+  img.src = URL.createObjectURL(file)
+  status.style.color = 'var(--text2)'
+  status.textContent = '🤖 冷蔵庫の食材を解析中...'
+  const base64 = await resizeImageToBase64(file, 1200)
+  try {
+    const text = await callApi({ type: 'fridge', imageBase64: base64, imageType: 'image/jpeg' })
+    const match = text.match(/\[[\s\S]*\]/)
+    if (!match) throw new Error('食材を認識できませんでした')
+    fridgeDetected = JSON.parse(match[0]).map(s => s.trim()).filter(Boolean)
+    if (fridgeDetected.length === 0) throw new Error('食材が見つかりませんでした')
+    status.textContent = `🔍 ${fridgeDetected.length}品目を検出しました。追加する食材を選んでください`
+    status.style.color = 'var(--green)'
+    renderFridgeTags()
+    selectPanel.style.display = 'block'
+  } catch (e) {
+    status.textContent = `❌ ${e.message}`
+    status.style.color = 'var(--red)'
+  }
+  event.target.value = ''
+}
+
+function renderFridgeTags() {
+  const el = document.getElementById('fridge-tags')
+  el.innerHTML = fridgeDetected.map((name, i) =>
+    `<span class="tag active fridge-tag" data-idx="${i}" onclick="this.classList.toggle('active')">${name}</span>`
+  ).join('')
+}
+
+function selectAllFridge(select) {
+  document.querySelectorAll('.fridge-tag').forEach(el => {
+    el.classList.toggle('active', select)
+  })
+}
+
+function confirmFridgeIngredients() {
+  const selected = [...document.querySelectorAll('.fridge-tag.active')].map(el => el.textContent)
+  if (selected.length === 0) { notify('食材が選択されていません'); return }
+  let added = 0
+  selected.forEach(name => {
+    if (!ingredients.includes(name)) { ingredients.push(name); added++ }
+  })
+  localStorage.setItem('ingredients', JSON.stringify(ingredients))
+  renderIngredients()
+  document.getElementById('fridge-select').style.display = 'none'
+  document.getElementById('fridge-status').textContent = `✅ ${added}件の食材を登録しました`
+  document.getElementById('fridge-status').style.color = 'var(--green)'
+  notify(`${added}件の食材を登録しました！`)
 }
 
 async function readReceipt(event) {
