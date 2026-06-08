@@ -42,6 +42,13 @@ h1 { font-size: 22px; font-weight: 800; padding: 16px 0 20px; }
   display: flex; flex-direction: column; justify-content: flex-end;
   padding: 20px 20px;
 }
+.hero-mypage-btn {
+  position: absolute; top: 10px; right: 12px;
+  background: rgba(255,255,255,0.18); backdrop-filter: blur(6px);
+  border: 1px solid rgba(255,255,255,0.35); border-radius: 20px;
+  color: #fff; font-size: 12px; font-weight: 700;
+  padding: 5px 13px; cursor: pointer; letter-spacing: 0.3px;
+}
 .hero-title { font-size: 20px; font-weight: 900; color: #fff; letter-spacing: 0.5px; text-shadow: 0 2px 8px rgba(0,0,0,0.4); }
 .hero-sub { font-size: 12px; color: rgba(255,255,255,0.85); margin-top: 1px; font-weight: 500; }
 
@@ -51,14 +58,14 @@ h1 { font-size: 22px; font-weight: 800; padding: 16px 0 20px; }
   background: rgba(255,255,255,0.95);
   backdrop-filter: blur(12px);
   border-top: 1px solid var(--border);
-  display: grid; grid-template-columns: repeat(8, 1fr);
+  display: grid; grid-template-columns: repeat(6, 1fr);
   padding: 6px 2px 26px; gap: 1px; z-index: 50;
 }
 .nav-btn {
   padding: 6px 1px 4px;
   border: none; border-radius: 12px;
   background: transparent; color: var(--text2);
-  font-size: 8px; cursor: pointer;
+  font-size: 9px; cursor: pointer;
   transition: all 0.2s; font-weight: 600;
   display: flex; flex-direction: column; align-items: center; gap: 2px;
 }
@@ -338,9 +345,13 @@ textarea.input { resize: none; min-height: 80px; }
 <div id="user-bar" style="display:none"></div>
 
 <!-- Hero -->
-<div class="hero">
+<div class="hero" id="hero" style="display:none">
   <img src="hero.jpg" alt="献立">
   <div class="hero-overlay">
+    <div style="position:absolute;top:10px;right:12px;display:flex;gap:6px">
+      <button class="hero-mypage-btn" onclick="showTab('calendar')">カレンダー</button>
+      <button class="hero-mypage-btn" onclick="showTab('mypage')">マイページ</button>
+    </div>
     <div class="hero-title">🍱 献立アプリ</div>
     <div class="hero-sub">毎日の食卓をもっと楽しく</div>
   </div>
@@ -1018,9 +1029,6 @@ textarea.input { resize: none; min-height: 80px; }
 
 <!-- Bottom Nav -->
 <div class="bottom-nav">
-  <button class="nav-btn" id="btn-calendar" onclick="showTab('calendar')">
-    <span class="nav-icon"></span>カレンダー
-  </button>
   <button class="nav-btn active" id="btn-ing-add" onclick="showTab('ing-add')">
     <span class="nav-icon"></span>食材登録
   </button>
@@ -1038,9 +1046,6 @@ textarea.input { resize: none; min-height: 80px; }
   </button>
   <button class="nav-btn" id="btn-add-recipe" onclick="showTab('add-recipe')">
     <span class="nav-icon"></span>レシピ登録
-  </button>
-  <button class="nav-btn" id="btn-mypage" onclick="showTab('mypage')">
-    <span class="nav-icon"></span>マイページ
   </button>
 </div>
 
@@ -1117,10 +1122,11 @@ const DEFAULT_RECIPES = [
 
 async function onLogin() {
   document.getElementById('auth-screen').classList.remove('show')
+  document.getElementById('hero').style.display = 'block'
   await loadRecipes()
   if (recipes.length === 0) await insertDefaultRecipes()
   renderIngredients()
-  showTab('calendar')
+  showTab('ing-add')
 }
 
 async function insertDefaultRecipes() {
@@ -1132,6 +1138,7 @@ async function insertDefaultRecipes() {
 function onLogout() {
   recipes = []
   document.getElementById('auth-screen').classList.add('show')
+  document.getElementById('hero').style.display = 'none'
 }
 
 let authMode = 'login'
@@ -1228,6 +1235,7 @@ async function signOut() {
 
 // App
 const TABS = ['calendar','ing-add','ing-stock','plan','shopping','recipes','add-recipe','mypage']
+// マイページはheroのボタンからアクセス、ナビには含まない
 function safeGet(key) {
   try { return JSON.parse(localStorage.getItem(key) || '[]') } catch { return [] }
 }
@@ -1249,7 +1257,7 @@ async function callApi(body) {
 function showTab(tab) {
   TABS.forEach(t => {
     document.getElementById('tab-' + t).style.display = t === tab ? 'block' : 'none'
-    document.getElementById('btn-' + t).classList.toggle('active', t === tab)
+    document.getElementById('btn-' + t)?.classList.toggle('active', t === tab)
   })
   if (tab === 'recipes') renderRecipes()
   if (tab === 'add-recipe') initCatSelect()
