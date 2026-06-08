@@ -37,7 +37,7 @@ h1 { font-size: 22px; font-weight: 800; padding: 16px 0 20px; }
 /* Hero */
 .hero {
   max-width: 480px; margin: 0 auto;
-  height: 130px; position: relative; overflow: hidden;
+  height: 190px; position: relative; overflow: hidden;
   border-radius: 0 0 20px 20px;
 }
 .hero img { width: 100%; height: 100%; object-fit: cover; object-position: center 40%; }
@@ -976,7 +976,7 @@ textarea.input { resize: none; min-height: 80px; }
   <div class="modal" style="padding-top:0;padding-left:0;padding-right:0;overflow:hidden">
     <div class="modal-body" style="padding:0 16px">
     <div id="detail-image-wrap" style="display:none;margin:0 -16px 12px">
-      <img id="detail-image" style="width:100%;height:140px;object-fit:cover;display:block">
+      <img id="detail-image" style="width:100%;height:220px;object-fit:cover;display:block">
     </div>
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin:16px 0 12px">
       <div id="detail-name" style="font-size:22px;font-weight:800;line-height:1.4;flex:1"></div>
@@ -1837,7 +1837,10 @@ function renderRecipes() {
     const specTags = (r.tags || []).filter(t => t !== 'お気に入り')
     return `
     <div class="recipe-item" style="cursor:pointer;overflow:hidden;padding:0" onclick="openDetailModal('${r.id}')">
-      ${r.image ? `<img src="${r.image}" style="width:100%;height:120px;object-fit:cover;display:block">` : ''}
+      ${r.image
+        ? `<img src="${r.image}" style="width:100%;height:160px;object-fit:cover;display:block">`
+        : `<div style="width:100%;height:80px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:28px">🍽️</div>`
+      }
       <div style="padding:12px 14px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
