@@ -26,7 +26,12 @@
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
-.app { max-width: 480px; margin: 0 auto; padding: 16px; padding-bottom: 80px; }
+.top-bar { position: fixed; top: 0; left: 0; right: 0; z-index: 60; display: none; background: rgba(255,255,255,0.95); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); max-width: 480px; margin: 0 auto; padding: 8px 16px; display: flex; justify-content: space-between; align-items: center; }
+.top-bar-title { font-size: 15px; font-weight: 900; color: var(--text); }
+.top-bar-btns { display: flex; gap: 6px; }
+.top-bar-btn { background: var(--surface2); border: 1px solid var(--border); border-radius: 18px; font-size: 12px; font-weight: 700; padding: 5px 13px; cursor: pointer; color: var(--text); }
+.top-bar-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.app { max-width: 480px; margin: 0 auto; padding: 16px; padding-top: 56px; padding-bottom: 80px; }
 h1 { font-size: 22px; font-weight: 800; padding: 16px 0 20px; }
 
 /* Hero */
@@ -344,15 +349,20 @@ textarea.input { resize: none; min-height: 80px; }
 <!-- User Bar -->
 <div id="user-bar" style="display:none"></div>
 
-<!-- Hero -->
+<!-- Top Bar -->
+<div class="top-bar" id="top-bar" style="display:none">
+  <div class="top-bar-title">献立アプリ</div>
+  <div class="top-bar-btns">
+    <button class="top-bar-btn" id="top-btn-calendar" onclick="showTab('calendar')">カレンダー</button>
+    <button class="top-bar-btn" id="top-btn-mypage" onclick="showTab('mypage')">マイページ</button>
+  </div>
+</div>
+
+<!-- Hero (decorative only) -->
 <div class="hero" id="hero" style="display:none">
   <img src="hero.jpg" alt="献立">
   <div class="hero-overlay">
-    <div style="position:absolute;top:10px;right:12px;display:flex;gap:6px">
-      <button class="hero-mypage-btn" onclick="showTab('calendar')">カレンダー</button>
-      <button class="hero-mypage-btn" onclick="showTab('mypage')">マイページ</button>
-    </div>
-    <div class="hero-title">🍱 献立アプリ</div>
+    <div class="hero-title">献立アプリ</div>
     <div class="hero-sub">毎日の食卓をもっと楽しく</div>
   </div>
 </div>
@@ -1122,6 +1132,7 @@ const DEFAULT_RECIPES = [
 
 async function onLogin() {
   document.getElementById('auth-screen').classList.remove('show')
+  document.getElementById('top-bar').style.display = 'flex'
   document.getElementById('hero').style.display = 'block'
   await loadRecipes()
   if (recipes.length === 0) await insertDefaultRecipes()
@@ -1138,6 +1149,7 @@ async function insertDefaultRecipes() {
 function onLogout() {
   recipes = []
   document.getElementById('auth-screen').classList.add('show')
+  document.getElementById('top-bar').style.display = 'none'
   document.getElementById('hero').style.display = 'none'
 }
 
@@ -1258,6 +1270,7 @@ function showTab(tab) {
   TABS.forEach(t => {
     document.getElementById('tab-' + t).style.display = t === tab ? 'block' : 'none'
     document.getElementById('btn-' + t)?.classList.toggle('active', t === tab)
+    document.getElementById('top-btn-' + t)?.classList.toggle('active', t === tab)
   })
   if (tab === 'recipes') renderRecipes()
   if (tab === 'add-recipe') initCatSelect()
