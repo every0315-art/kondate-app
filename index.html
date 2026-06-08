@@ -1507,8 +1507,7 @@ function renderIngredientStock() {
     listEl.innerHTML = catOrder.filter(c => groups[c]).map(cat => `
       <div class="ing-section-title">${cat}</div>
       <div style="margin-bottom:4px">${groups[cat].map(ing => {
-        const idx = ingredients.indexOf(ing)
-        return `<span class="ing-stock-chip has"><span>${ing}</span><span class="chip-del" onclick="removeIngredient(${idx})">✕</span></span>`
+        return `<span class="ing-stock-chip has"><span>${ing}</span><span class="chip-del" onclick="removeIngredientByName('${ing.replace(/'/g,"\\'")}')">✕</span></span>`
       }).join('')}</div>
     `).join('')
   }
@@ -1538,6 +1537,16 @@ function addIngredient() {
 }
 
 function removeIngredient(i) {
+  if (i < 0 || i >= ingredients.length) return
+  ingredients.splice(i, 1)
+  localStorage.setItem('ingredients', JSON.stringify(ingredients))
+  renderIngredients()
+  if (document.getElementById('tab-ing-stock').style.display !== 'none') renderIngredientStock()
+}
+
+function removeIngredientByName(name) {
+  const i = ingredients.indexOf(name)
+  if (i === -1) return
   ingredients.splice(i, 1)
   localStorage.setItem('ingredients', JSON.stringify(ingredients))
   renderIngredients()
