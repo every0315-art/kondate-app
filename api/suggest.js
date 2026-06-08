@@ -10,13 +10,13 @@ export default async function handler(req, res) {
   let messages, system, tools, toolChoice, extraHeaders = {}
 
   if (type === 'plan') {
-    const recipeList = recipes?.length
-      ? `\n登録レシピ:\n${recipes.map(r => `・${r.name}（材料: ${r.ingredients}）`).join('\n')}`
+    const topRecipes = (recipes || []).slice(0, 10)
+    const recipeList = topRecipes.length
+      ? `\n登録レシピ:${topRecipes.map(r => r.name).join('、')}`
       : ''
-    system = `あなたは家庭料理の献立アドバイザーです。ユーザーの食材と登録レシピを参考にして、3〜5日分の献立（朝・昼・夜）を提案してください。
-以下のJSON形式のみで返答してください。前置きや説明は不要です。
-[{"day":"1日目","meals":{"朝":"料理名","昼":"料理名","夜":"料理名"},"note":"一言コメント","missing":["不足食材1","不足食材2"]}]`
-    messages = [{ role: 'user', content: `手持ち食材: ${ingredients?.join('、') || 'なし'}${recipeList}\n\n3〜5日分の献立をJSON形式で提案してください。登録レシピを優先的に使ってください。` }]
+    system = `献立アドバイザー。3日分の献立(朝昼夜)をJSONのみで返す。前置き不要。
+[{"day":"1日目","meals":{"朝":"料理名","昼":"料理名","夜":"料理名"},"note":"コメント","missing":["不足食材"]}]`
+    messages = [{ role: 'user', content: `食材:${ingredients?.join('、') || 'なし'}${recipeList}\n3日分の献立をJSONで。登録レシピ優先。` }]
 
   } else if (type === 'search') {
     system = `あなたは料理レシピの専門家です。指定された食材を使った家庭料理のレシピを3件提案してください。
@@ -42,7 +42,8 @@ export default async function handler(req, res) {
   }
 
   try {
-    const body = { model: 'claude-haiku-4-5-20251001', max_tokens: 2000, system, messages }
+    const maxTokensMap = { plan: 800, search: 1200, receipt: 300, recipe: 400 }
+    const body = { model: 'claude-haiku-4-5', max_tokens: maxTokensMap[type] || 800, system, messages }
     if (tools) body.tools = tools
     if (toolChoice) body.tool_choice = toolChoice
 

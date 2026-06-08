@@ -10,6 +10,7 @@
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="manifest" href="manifest.json">
 <title>献立アプリ</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root {
   --bg: #f8f5f0;
@@ -50,22 +51,22 @@ h1 { font-size: 22px; font-weight: 800; padding: 16px 0 20px; }
   background: rgba(255,255,255,0.95);
   backdrop-filter: blur(12px);
   border-top: 1px solid var(--border);
-  display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
-  padding: 8px 8px 28px; gap: 4px; z-index: 50;
+  display: grid; grid-template-columns: repeat(6, 1fr);
+  padding: 6px 4px 26px; gap: 2px; z-index: 50;
 }
 .nav-btn {
-  padding: 8px 4px 6px;
-  border: none; border-radius: 14px;
+  padding: 6px 2px 4px;
+  border: none; border-radius: 12px;
   background: transparent; color: var(--text2);
-  font-size: 10px; cursor: pointer;
+  font-size: 9px; cursor: pointer;
   transition: all 0.2s; font-weight: 600;
-  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
 }
 .nav-btn .nav-icon {
-  font-size: 24px; line-height: 1;
-  width: 44px; height: 36px;
+  font-size: 20px; line-height: 1;
+  width: 36px; height: 30px;
   display: flex; align-items: center; justify-content: center;
-  border-radius: 12px; transition: all 0.2s;
+  border-radius: 10px; transition: all 0.2s;
 }
 .nav-btn.active .nav-icon {
   background: linear-gradient(135deg, var(--accent), #c05f1f);
@@ -145,11 +146,21 @@ textarea.input { resize: none; min-height: 80px; }
 .recipe-meta { font-size: 12px; color: var(--text2); }
 .recipe-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
 .fav-btn { background: none; border: none; font-size: 20px; cursor: pointer; padding: 0; line-height: 1; }
+.ing-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.ing-chip { background: var(--bg); border: 1px solid var(--border); border-radius: 20px; padding: 2px 10px; font-size: 11px; color: var(--text2); white-space: nowrap; }
+.steps-list { margin: 6px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; }
+.steps-list li { font-size: 12px; color: var(--text); display: flex; gap: 6px; line-height: 1.5; }
+.steps-list li::before { content: attr(data-n); background: var(--accent); color: #fff; border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; flex-shrink: 0; margin-top: 2px; }
+.search-recipe-card { background: var(--surface); border-radius: 14px; border: 1px solid var(--border); margin-bottom: 10px; overflow: hidden; }
+.search-recipe-header { background: linear-gradient(135deg, rgba(224,123,57,0.1), rgba(224,123,57,0.05)); padding: 12px 14px 8px; border-bottom: 1px solid var(--border); }
+.search-recipe-body { padding: 10px 14px 12px; }
 
 /* Edit Modal */
 .modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: flex-end; justify-content: center; }
 .modal-bg.show { display: flex; }
-.modal { background: var(--surface); border-radius: 20px 20px 0 0; padding: 20px 16px 40px; width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto; }
+.modal { background: var(--surface); border-radius: 20px 20px 0 0; padding: 20px 16px 0; width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto; display: flex; flex-direction: column; }
+.modal-body { flex: 1; overflow-y: auto; padding-bottom: 8px; }
+.modal-footer { position: sticky; bottom: 0; background: var(--surface); padding: 12px 0 28px; border-top: 1px solid var(--border); margin-top: 8px; }
 .modal-title { font-size: 18px; font-weight: 800; margin-bottom: 16px; }
 
 /* Special tags */
@@ -192,9 +203,103 @@ textarea.input { resize: none; min-height: 80px; }
 /* Notification */
 .notif { position: fixed; top: 12px; left: 12px; right: 12px; max-width: 480px; margin: 0 auto; background: var(--text); color: #fff; padding: 12px 16px; border-radius: 12px; font-size: 13px; font-weight: 500; z-index: 200; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
 .notif.show { opacity: 1; }
+.notif.error { background: var(--red); }
+.auth-error { background: #fff0f0; border: 1px solid var(--red); border-radius: 10px; padding: 12px 14px; margin-top: 12px; font-size: 13px; color: var(--red); display: none; line-height: 1.6; }
+.auth-error.show { display: block; }
+
+/* Guide */
+.guide-nav { display:flex; gap:6px; margin-bottom:14px; overflow-x:auto; padding-bottom:4px; }
+.guide-nav-btn { flex:0 0 auto; padding:8px 14px; border-radius:20px; border:1.5px solid var(--border); background:var(--surface); font-size:13px; font-weight:600; cursor:pointer; color:var(--text2); white-space:nowrap; }
+.guide-nav-btn.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+.guide-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.guide-card { background:var(--surface); border-radius:14px; padding:12px; border:1px solid var(--border); }
+.guide-svg { width:100%; height:56px; margin-bottom:8px; }
+.guide-name { font-size:15px; font-weight:800; margin-bottom:4px; color:var(--text); }
+.guide-desc { font-size:12px; color:var(--text2); line-height:1.6; margin-bottom:6px; }
+.guide-tip { font-size:11px; color:var(--accent); font-weight:600; }
+.guide-list { display:grid; gap:10px; }
+.guide-card-h { background:var(--surface); border-radius:14px; padding:14px; border:1px solid var(--border); }
+.heat-icon { font-size:28px; text-align:center; margin-bottom:6px; }
+.guide-table { width:100%; border-collapse:collapse; font-size:13px; }
+.guide-table th { background:var(--surface2); padding:8px 10px; text-align:left; font-weight:700; font-size:12px; color:var(--text2); }
+.guide-table td { padding:8px 10px; border-top:1px solid var(--border); color:var(--text); }
+.guide-table tr:nth-child(even) td { background:var(--surface2); }
+
+/* Auth Screen */
+.auth-screen {
+  display: none; position: fixed; inset: 0; z-index: 300;
+  background: var(--bg); flex-direction: column;
+  align-items: center; justify-content: center; padding: 24px;
+}
+.auth-screen.show { display: flex; }
+.auth-hero {
+  width: 100px; height: 100px; border-radius: 24px; overflow: hidden;
+  margin-bottom: 20px; box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+}
+.auth-hero img { width: 100%; height: 100%; object-fit: cover; }
+.auth-title { font-size: 24px; font-weight: 900; margin-bottom: 4px; color: var(--text); }
+.auth-sub { font-size: 14px; color: var(--text2); margin-bottom: 28px; }
+.auth-card { background: var(--surface); border-radius: 20px; padding: 24px; width: 100%; max-width: 360px; border: 1px solid var(--border); }
+.auth-divider { text-align: center; color: var(--text2); font-size: 12px; margin: 14px 0; position: relative; }
+.auth-divider::before, .auth-divider::after { content: ''; position: absolute; top: 50%; width: 40%; height: 1px; background: var(--border); }
+.auth-divider::before { left: 0; } .auth-divider::after { right: 0; }
+.btn-google { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); font-size: 15px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 8px; }
+.btn-google:hover { background: var(--surface2); }
+.auth-tabs { display: flex; gap: 4px; background: var(--surface2); border-radius: 10px; padding: 4px; margin-bottom: 16px; }
+.auth-tab { flex: 1; padding: 8px; border: none; border-radius: 8px; background: transparent; font-size: 14px; font-weight: 600; cursor: pointer; color: var(--text2); }
+.auth-tab.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+
+/* User info */
+.user-bar { display: flex; align-items: center; justify-content: space-between; padding: 8px 16px 0; max-width: 480px; margin: 0 auto; }
+.user-email { font-size: 11px; color: var(--text2); }
+.btn-logout { background: none; border: 1px solid var(--border); border-radius: 8px; padding: 4px 10px; font-size: 11px; color: var(--text2); cursor: pointer; }
 </style>
 </head>
 <body>
+<!-- Password Reset Screen -->
+<div class="auth-screen" id="reset-screen">
+  <div class="auth-hero"><img src="icon-512.png" alt="献立"></div>
+  <div class="auth-title">🔑 パスワード変更</div>
+  <div class="auth-sub">新しいパスワードを設定してください</div>
+  <div class="auth-card">
+    <input class="input" id="reset-password" type="password" placeholder="新しいパスワード（6文字以上）" style="margin-bottom:8px">
+    <input class="input" id="reset-password2" type="password" placeholder="新しいパスワード（確認）" style="margin-bottom:12px">
+    <button class="btn btn-primary" style="margin-top:0" onclick="doResetPassword()">パスワードを変更する</button>
+    <div class="auth-error" id="reset-error" style="margin-top:12px"></div>
+  </div>
+</div>
+
+<!-- Auth Screen -->
+<div class="auth-screen show" id="auth-screen">
+  <div class="auth-hero"><img src="icon-512.png" alt="献立"></div>
+  <div class="auth-title">🍱 献立アプリ</div>
+  <div class="auth-sub">毎日の食卓をもっと楽しく</div>
+  <div class="auth-card">
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="setAuthMode('login')">ログイン</button>
+      <button class="auth-tab" onclick="setAuthMode('signup')">新規登録</button>
+    </div>
+    <input class="input" id="auth-email" type="email" placeholder="メールアドレス" style="margin-bottom:8px">
+    <input class="input" id="auth-password" type="password" placeholder="パスワード（6文字以上）" style="margin-bottom:12px">
+    <button class="btn btn-primary" style="margin-top:0" id="auth-btn" onclick="authAction()">ログイン</button>
+    <div id="forgot-pw-wrap" style="text-align:center;margin-top:10px">
+      <button onclick="forgotPassword()" style="background:none;border:none;color:var(--text2);font-size:13px;cursor:pointer;text-decoration:underline">パスワードを忘れた方はこちら</button>
+    </div>
+    <div class="auth-error" id="auth-error"></div>
+    <div class="auth-divider">または</div>
+    <button class="btn-google" onclick="signInWithGoogle()">
+      <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 002.38-5.88c0-.57-.05-.66-.15-1.18z"/><path fill="#34A853" d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2a4.8 4.8 0 01-7.18-2.54H1.83v2.07A8 8 0 008.98 17z"/><path fill="#FBBC05" d="M4.5 10.52a4.8 4.8 0 010-3.04V5.41H1.83a8 8 0 000 7.18l2.67-2.07z"/><path fill="#EA4335" d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 001.83 5.4L4.5 7.49a4.77 4.77 0 014.48-3.3z"/></svg>
+      Googleでログイン
+    </button>
+  </div>
+</div>
+
+<!-- User Bar -->
+<div class="user-bar" id="user-bar" style="display:none">
+  <span class="user-email" id="user-email"></span>
+  <button class="btn-logout" onclick="signOut()">ログアウト</button>
+</div>
+
 <!-- Hero -->
 <div class="hero">
   <img src="hero.jpg" alt="献立">
@@ -214,7 +319,7 @@ textarea.input { resize: none; min-height: 80px; }
     <!-- レシート読み取り -->
     <div class="card" style="border:2px dashed var(--accent);background:rgba(224,123,57,0.05)">
       <div class="section-title">📷 レシートから自動読み取り</div>
-      <input type="file" id="receipt-input" accept="image/*" capture="environment" style="display:none" onchange="readReceipt(event)">
+      <input type="file" id="receipt-input" accept="image/*" style="display:none" onchange="readReceipt(event)">
       <button class="btn btn-primary" style="background:var(--accent);margin-top:0" onclick="document.getElementById('receipt-input').click()">
         📸 レシートを撮影・選択
       </button>
@@ -246,6 +351,34 @@ textarea.input { resize: none; min-height: 80px; }
     <div style="display:flex;gap:6px;margin-bottom:12px">
       <button class="btn btn-small" id="view-btn-list" onclick="setRecipeView('list')" style="flex:1;background:var(--accent);color:#fff">一覧</button>
       <button class="btn btn-small" id="view-btn-ingredient" onclick="setRecipeView('ingredient')" style="flex:1">食材別</button>
+      <button class="btn btn-small" onclick="toggleSharePanel()" style="flex:0 0 auto;padding:0 12px">↕️</button>
+    </div>
+
+    <!-- 共有・バックアップパネル -->
+    <div id="share-panel" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:12px">
+      <div class="section-title" style="margin-bottom:10px">📤 バックアップ・共有</div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+        <button class="btn btn-small" style="background:var(--green);color:#fff;border:none" onclick="exportRecipes()">⬇️ エクスポート</button>
+        <label class="btn btn-small" style="background:var(--surface2);border:1px solid var(--border);text-align:center;cursor:pointer;margin:0">
+          ⬆️ インポート
+          <input type="file" accept=".json" style="display:none" onchange="importRecipes(event)">
+        </label>
+      </div>
+
+      <div style="border-top:1px solid var(--border);padding-top:10px">
+        <div style="font-size:12px;color:var(--text2);margin-bottom:6px">他のアカウントからレシピを取り込む</div>
+        <div style="display:flex;gap:6px;margin-bottom:8px">
+          <input class="input" id="share-code-input" placeholder="共有コードを入力" style="flex:1;font-size:13px;padding:8px 12px">
+          <button class="btn btn-small" style="background:var(--accent);color:#fff;border:none;white-space:nowrap" onclick="importByCode()">取り込む</button>
+        </div>
+        <button class="btn btn-small" style="width:100%;background:var(--surface2);border:1px solid var(--border)" onclick="showMyShareCode()">🔑 自分の共有コードを表示</button>
+        <div id="my-share-code" style="display:none;margin-top:8px;background:var(--bg);border-radius:8px;padding:10px;text-align:center">
+          <div style="font-size:11px;color:var(--text2);margin-bottom:4px">あなたの共有コード（相手に教えてください）</div>
+          <div id="share-code-text" style="font-size:13px;font-weight:700;word-break:break-all;color:var(--accent)"></div>
+          <button class="btn btn-small" style="margin-top:8px" onclick="copyShareCode()">📋 コピー</button>
+        </div>
+      </div>
     </div>
 
     <!-- 食材別ビュー -->
@@ -271,7 +404,7 @@ textarea.input { resize: none; min-height: 80px; }
 
     <!-- ネット検索 -->
     <div class="card" style="border:2px dashed var(--green);background:rgba(74,158,107,0.05);margin-bottom:12px">
-      <div class="section-title">🤖 AI検索</div>
+      <div class="section-title">🤖 AIレシピ提案</div>
       <div style="display:flex;gap:8px;margin-bottom:8px">
         <input class="input" id="search-ing-input" placeholder="食材を入力（例：鶏肉、じゃがいも）" style="flex:1">
         <button class="btn btn-small" style="background:var(--green);color:#fff;border:none" onclick="searchOnlineRecipes()">検索</button>
@@ -283,7 +416,7 @@ textarea.input { resize: none; min-height: 80px; }
     <!-- 写真から読み込み -->
     <div class="card" style="border:2px dashed var(--accent);background:rgba(224,123,57,0.05);margin-bottom:12px">
       <div class="section-title">📷 写真からレシピを読み込む</div>
-      <input type="file" id="recipe-photo-input" accept="image/*" capture="environment" style="display:none" onchange="readRecipePhoto(event)">
+      <input type="file" id="recipe-photo-input" accept="image/*" style="display:none" onchange="readRecipePhoto(event)">
       <button class="btn btn-primary" style="background:var(--accent);margin-top:0" onclick="document.getElementById('recipe-photo-input').click()">
         📸 レシピ写真を撮影・選択
       </button>
@@ -308,7 +441,9 @@ textarea.input { resize: none; min-height: 80px; }
       <input class="input" id="recipe-ingredients" placeholder="材料（カンマ区切り）例：鶏肉 300g,玉ねぎ 1個" style="margin-bottom:8px">
       <textarea class="input" id="recipe-steps" placeholder="作り方（省略可）" style="margin-bottom:8px"></textarea>
       <div class="section-title" style="margin-bottom:6px">カテゴリ（複数選択可）</div>
-      <div id="recipe-cat-select" class="cat-select" style="margin-bottom:8px"></div>
+      <div id="recipe-cat-select" class="cat-select" style="margin-bottom:12px"></div>
+      <div class="section-title" style="margin-bottom:6px">タグ（複数選択可）</div>
+      <div id="recipe-spec-tags" style="margin-bottom:12px"></div>
       <button class="btn btn-primary" onclick="saveRecipe()">レシピを保存</button>
     </div>
   </div>
@@ -317,6 +452,10 @@ textarea.input { resize: none; min-height: 80px; }
   <div id="tab-plan" style="display:none">
     <h1>🍱 献立提案</h1>
     <div id="plan-content"><div class="loading">「食材で献立を作る」ボタンを押してください</div></div>
+    <div id="plan-share-btns" style="display:none;display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">
+      <button class="btn" style="background:var(--surface2);border:1px solid var(--border);margin-top:0" onclick="sharePlanLink()">🔗 リンクをシェア</button>
+      <button class="btn" style="background:var(--surface2);border:1px solid var(--border);margin-top:0" onclick="sharePlanText()">📋 テキストをシェア</button>
+    </div>
   </div>
 
   <!-- 買い物タブ -->
@@ -324,36 +463,310 @@ textarea.input { resize: none; min-height: 80px; }
     <h1>🛒 買い物リスト</h1>
     <div id="shopping-content"><div class="loading">献立を作成すると買い物リストが生成されます</div></div>
   </div>
+
+  <!-- ガイドタブ -->
+  <div id="tab-guide" style="display:none">
+    <h1>📖 料理のコツ</h1>
+    <div class="guide-nav">
+      <button class="guide-nav-btn active" onclick="showGuide('cuts')">🔪 切り方</button>
+      <button class="guide-nav-btn" onclick="showGuide('heat')">🔥 火加減</button>
+      <button class="guide-nav-btn" onclick="showGuide('measure')">📏 計量</button>
+      <button class="guide-nav-btn" onclick="showGuide('prep')">🥢 下ごしらえ</button>
+      <button class="guide-nav-btn" onclick="showGuide('plate')">🍽️ 盛り付け</button>
+    </div>
+
+    <!-- 切り方 -->
+    <div id="guide-cuts" class="guide-section">
+      <div class="guide-grid">
+        <div class="guide-card">
+          <svg viewBox="0 0 80 60" class="guide-svg"><rect x="5" y="8" width="70" height="44" fill="#a8d8a8" rx="4"/><line x1="19" y1="8" x2="19" y2="52" stroke="#3a7a3a" stroke-width="1.5"/><line x1="33" y1="8" x2="33" y2="52" stroke="#3a7a3a" stroke-width="1.5"/><line x1="47" y1="8" x2="47" y2="52" stroke="#3a7a3a" stroke-width="1.5"/><line x1="61" y1="8" x2="61" y2="52" stroke="#3a7a3a" stroke-width="1.5"/></svg>
+          <div class="guide-name">千切り</div>
+          <div class="guide-desc">繊維に沿って細長く切る。2〜3mm幅が目安。炒め物・和え物・サラダに。</div>
+          <div class="guide-tip">💡 重ねて一気に切ると素早くできる</div>
+        </div>
+        <div class="guide-card">
+          <svg viewBox="0 0 80 60" class="guide-svg"><rect x="5" y="5" width="70" height="50" fill="#a8d8a8" rx="4"/><line x1="19" y1="5" x2="19" y2="55" stroke="#3a7a3a" stroke-width="1.5"/><line x1="33" y1="5" x2="33" y2="55" stroke="#3a7a3a" stroke-width="1.5"/><line x1="47" y1="5" x2="47" y2="55" stroke="#3a7a3a" stroke-width="1.5"/><line x1="61" y1="5" x2="61" y2="55" stroke="#3a7a3a" stroke-width="1.5"/><line x1="5" y1="18" x2="75" y2="18" stroke="#3a7a3a" stroke-width="1.5"/><line x1="5" y1="31" x2="75" y2="31" stroke="#3a7a3a" stroke-width="1.5"/><line x1="5" y1="44" x2="75" y2="44" stroke="#3a7a3a" stroke-width="1.5"/></svg>
+          <div class="guide-name">みじん切り</div>
+          <div class="guide-desc">縦横に細かく刻む。2〜3mm角が目安。炒め物・ハンバーグ・餃子の具に。</div>
+          <div class="guide-tip">💡 まず縦に切り目を入れてから横に刻む</div>
+        </div>
+        <div class="guide-card">
+          <svg viewBox="0 0 80 60" class="guide-svg"><ellipse cx="18" cy="30" rx="10" ry="22" fill="#ffb3b3"/><ellipse cx="34" cy="30" rx="10" ry="22" fill="#ffc9c9"/><ellipse cx="50" cy="30" rx="10" ry="22" fill="#ffb3b3"/><ellipse cx="66" cy="30" rx="10" ry="22" fill="#ffc9c9"/></svg>
+          <div class="guide-name">薄切り</div>
+          <div class="guide-desc">1〜3mm厚さに切る。炒め物・煮物・しゃぶしゃぶに。</div>
+          <div class="guide-tip">💡 半冷凍にすると切りやすい</div>
+        </div>
+        <div class="guide-card">
+          <svg viewBox="0 0 80 60" class="guide-svg"><circle cx="18" cy="30" r="18" fill="#ffcc80"/><circle cx="44" cy="30" r="18" fill="#ffe0a0"/><circle cx="70" cy="30" r="18" fill="#ffcc80"/></svg>
+          <div class="guide-name">輪切り</div>
+          <div class="guide-desc">円形のまま一定の厚さで切る。にんじん・きゅうり・ちくわなどに。</div>
+          <div class="guide-tip">💡 厚さを均一にすると火の通りが揃う</div>
+        </div>
+        <div class="guide-card">
+          <svg viewBox="0 0 80 60" class="guide-svg"><polygon points="5,50 22,10 38,45 55,15 75,50" fill="none" stroke="#888" stroke-width="1"/><polygon points="5,50 22,10 38,45" fill="#a8d8a8"/><polygon points="38,45 55,15 75,50" fill="#c8e8c8"/><line x1="5" y1="50" x2="75" y2="50" stroke="#3a7a3a" stroke-width="1.5"/></svg>
+          <div class="guide-name">乱切り</div>
+          <div class="guide-desc">素材を回しながら斜めに切る。断面が大きく味が染みやすい。煮物に最適。</div>
+          <div class="guide-tip">💡 1回切るごとに90°回転させる</div>
+        </div>
+        <div class="guide-card">
+          <svg viewBox="0 0 80 60" class="guide-svg"><rect x="5" y="15" width="30" height="30" fill="#a8d8a8" rx="3"/><rect x="42" y="10" width="18" height="20" fill="#c8e8c8" rx="3"/><rect x="45" y="35" width="22" height="15" fill="#a8d8a8" rx="3"/><rect x="10" y="52" width="60" height="3" fill="#ddd" rx="1"/></svg>
+          <div class="guide-name">ざく切り</div>
+          <div class="guide-desc">3〜4cm角の大きめに切る。白菜・キャベツ・ほうれん草などに。</div>
+          <div class="guide-tip">💡 葉物野菜は重ねて一気に切る</div>
+        </div>
+        <div class="guide-card">
+          <svg viewBox="0 0 80 60" class="guide-svg"><rect x="5" y="20" width="20" height="30" fill="#a8d8a8" rx="2"/><rect x="30" y="20" width="20" height="30" fill="#c8e8c8" rx="2"/><rect x="55" y="20" width="20" height="30" fill="#a8d8a8" rx="2"/></svg>
+          <div class="guide-name">短冊切り</div>
+          <div class="guide-desc">3〜4cm長さ×1cm幅×3mm厚の短冊形。炒め物・みそ汁・酢の物に。</div>
+          <div class="guide-tip">💡 名前の通り短冊の形をイメージする</div>
+        </div>
+        <div class="guide-card">
+          <svg viewBox="0 0 80 60" class="guide-svg"><path d="M10,50 A20,20 0 0,1 50,50 Z" fill="#ffcc80"/><path d="M35,50 A20,20 0 0,1 75,50 Z" fill="#ffe0a0"/><line x1="5" y1="50" x2="78" y2="50" stroke="#888" stroke-width="1.5"/></svg>
+          <div class="guide-name">半月切り</div>
+          <div class="guide-desc">輪切りを半分に切った半月形。大根・にんじん・れんこんなどに。</div>
+          <div class="guide-tip">💡 輪切りにしてから縦半分に切るだけ</div>
+        </div>
+        <div class="guide-card">
+          <svg viewBox="0 0 80 60" class="guide-svg"><polygon points="15,50 40,10 65,50" fill="#ffe0a0" stroke="#888" stroke-width="1"/><polygon points="5,50 30,10 55,50" fill="#ffcc80" stroke="#888" stroke-width="1"/><polygon points="25,50 50,10 75,50" fill="#ffe0a0" stroke="#888" stroke-width="1"/></svg>
+          <div class="guide-name">いちょう切り</div>
+          <div class="guide-desc">輪切りを縦に4等分した扇形。大根・にんじんの煮物・みそ汁に。</div>
+          <div class="guide-tip">💡 輪切り→半月→さらに半分が目安</div>
+        </div>
+        <div class="guide-card">
+          <svg viewBox="0 0 80 60" class="guide-svg"><rect x="5" y="5" width="22" height="22" fill="#ffcc80" rx="2"/><rect x="32" y="5" width="22" height="22" fill="#ffe0a0" rx="2"/><rect x="5" y="33" width="22" height="22" fill="#ffe0a0" rx="2"/><rect x="32" y="33" width="22" height="22" fill="#ffcc80" rx="2"/></svg>
+          <div class="guide-name">角切り</div>
+          <div class="guide-desc">2〜3cm角の正方形に切る。カレー・シチュー・肉じゃがに。</div>
+          <div class="guide-tip">💡 大きさを揃えると火の通りが均一に</div>
+        </div>
+        <div class="guide-card">
+          <svg viewBox="0 0 80 60" class="guide-svg"><ellipse cx="15" cy="48" rx="12" ry="6" fill="#ffb3b3" transform="rotate(-30,15,48)"/><ellipse cx="38" cy="38" rx="12" ry="6" fill="#ffc9c9" transform="rotate(-30,38,38)"/><ellipse cx="61" cy="28" rx="12" ry="6" fill="#ffb3b3" transform="rotate(-30,61,28)"/></svg>
+          <div class="guide-name">そぎ切り</div>
+          <div class="guide-desc">包丁を斜めに寝かせて薄く切る。鶏肉・魚の切り身・長ねぎに。</div>
+          <div class="guide-tip">💡 火が通りやすく味も染みやすい</div>
+        </div>
+        <div class="guide-card">
+          <svg viewBox="0 0 80 60" class="guide-svg"><circle cx="16" cy="30" r="12" fill="#c8e8c8" stroke="#3a7a3a" stroke-width="1.5"/><circle cx="42" cy="30" r="12" fill="#a8d8a8" stroke="#3a7a3a" stroke-width="1.5"/><circle cx="68" cy="30" r="12" fill="#c8e8c8" stroke="#3a7a3a" stroke-width="1.5"/></svg>
+          <div class="guide-name">小口切り</div>
+          <div class="guide-desc">ねぎ・きゅうりを端から薄く切る。薬味・サラダ・みそ汁の具に。</div>
+          <div class="guide-tip">💡 ねぎは斜めに切ると風味が増す</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 火加減 -->
+    <div id="guide-heat" class="guide-section" style="display:none">
+      <div class="guide-list">
+        <div class="guide-card-h">
+          <div class="heat-icon" style="color:#ff2200">🔥🔥🔥</div>
+          <div class="guide-name">強火</div>
+          <div class="guide-desc">鍋底全体に炎が当たる状態。湯を沸かす・炒め物・揚げ物の加熱など短時間で仕上げる料理に。</div>
+          <div class="guide-tip">💡 水分を素早く飛ばしたいときも強火</div>
+        </div>
+        <div class="guide-card-h">
+          <div class="heat-icon" style="color:#ff7700">🔥🔥</div>
+          <div class="guide-name">中火</div>
+          <div class="guide-desc">鍋底に炎がちょうど当たる状態。最も使用頻度が高い。炒め物・焼き物・煮物の煮立て始めに。</div>
+          <div class="guide-tip">💡 迷ったら中火が基本。レシピの標準</div>
+        </div>
+        <div class="guide-card-h">
+          <div class="heat-icon" style="color:#ffaa00">🔥</div>
+          <div class="guide-name">弱火</div>
+          <div class="guide-desc">炎が鍋底に届かない小さな状態。煮込み料理・卵料理・ソース作りに。じっくり火を通す。</div>
+          <div class="guide-tip">💡 中火の約半分の火力が目安</div>
+        </div>
+        <div class="guide-card-h">
+          <div class="heat-icon" style="color:#ffcc00">🕯️</div>
+          <div class="guide-name">とろ火</div>
+          <div class="guide-desc">炎がかろうじて見える最小の状態。長時間煮込む煮物・あめ色玉ねぎ・煮詰めるソースに。</div>
+          <div class="guide-tip">💡 弱火よりさらに弱く。焦がさず長時間</div>
+        </div>
+        <div class="guide-card-h">
+          <div class="heat-icon" style="color:#888">⬜</div>
+          <div class="guide-name">余熱</div>
+          <div class="guide-desc">火を止めた後の鍋の熱。パスタを茹でた後・ローストした肉を休ませるときに活用。</div>
+          <div class="guide-tip">💡 火を止めても3〜5分は熱が続く</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 計量 -->
+    <div id="guide-measure" class="guide-section" style="display:none">
+      <div class="card" style="padding:0;overflow:hidden;margin-bottom:12px">
+        <div class="section-title" style="padding:12px 14px 8px">スプーン・カップの容量</div>
+        <table class="guide-table">
+          <tr><th>道具</th><th>容量</th><th>水・酒・酢</th><th>醤油・みりん</th></tr>
+          <tr><td>大さじ1</td><td>15ml</td><td>15g</td><td>18g</td></tr>
+          <tr><td>小さじ1</td><td>5ml</td><td>5g</td><td>6g</td></tr>
+          <tr><td>1カップ</td><td>200ml</td><td>200g</td><td>—</td></tr>
+        </table>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden;margin-bottom:12px">
+        <div class="section-title" style="padding:12px 14px 8px">食材別・大さじ1の重さ</div>
+        <table class="guide-table">
+          <tr><th>食材</th><th>大さじ1</th><th>小さじ1</th></tr>
+          <tr><td>塩</td><td>18g</td><td>6g</td></tr>
+          <tr><td>砂糖（上白糖）</td><td>9g</td><td>3g</td></tr>
+          <tr><td>みそ</td><td>18g</td><td>6g</td></tr>
+          <tr><td>バター</td><td>12g</td><td>4g</td></tr>
+          <tr><td>小麦粉・片栗粉</td><td>9g</td><td>3g</td></tr>
+          <tr><td>サラダ油・ごま油</td><td>12g</td><td>4g</td></tr>
+          <tr><td>マヨネーズ</td><td>12g</td><td>4g</td></tr>
+        </table>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden">
+        <div class="section-title" style="padding:12px 14px 8px">よく使う換算</div>
+        <table class="guide-table">
+          <tr><th>表現</th><th>目安量</th></tr>
+          <tr><td>少々</td><td>親指・人差し指でつまんだ量（約0.5g）</td></tr>
+          <tr><td>ひとつまみ</td><td>3本指でつまんだ量（約1g）</td></tr>
+          <tr><td>適量</td><td>味を見ながら好みで調整</td></tr>
+          <tr><td>米1合</td><td>180ml（約150g）</td></tr>
+          <tr><td>卵Mサイズ</td><td>約50g（殻なし）</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- 下ごしらえ -->
+    <div id="guide-prep" class="guide-section" style="display:none">
+      <div class="guide-list">
+        <div class="guide-card-h">
+          <div style="font-size:32px;text-align:center;margin-bottom:6px">🧂</div>
+          <div class="guide-name">塩もみ</div>
+          <div class="guide-desc">野菜に塩を振ってもみ込み、余分な水分を出す。きゅうり・キャベツ・大根などに。</div>
+          <div class="guide-tip">💡 5〜10分置いてから水気を絞る。しんなりして味が染みやすくなる</div>
+        </div>
+        <div class="guide-card-h">
+          <div style="font-size:32px;text-align:center;margin-bottom:6px">💧</div>
+          <div class="guide-name">水にさらす</div>
+          <div class="guide-desc">切った野菜を冷水に浸す。アク・えぐみ・変色防止に。じゃがいも・ごぼう・れんこんなどに。</div>
+          <div class="guide-tip">💡 5〜10分が目安。長くさらすと栄養素が溶け出すので注意</div>
+        </div>
+        <div class="guide-card-h">
+          <div style="font-size:32px;text-align:center;margin-bottom:6px">♨️</div>
+          <div class="guide-name">湯通し・霜降り</div>
+          <div class="guide-desc">沸騰したお湯に短時間くぐらせる。肉・魚の臭み取りや野菜の色出しに。</div>
+          <div class="guide-tip">💡 くぐらせたらすぐ冷水に取ると色がきれいに</div>
+        </div>
+        <div class="guide-card-h">
+          <div style="font-size:32px;text-align:center;margin-bottom:6px">🥣</div>
+          <div class="guide-name">下茹で</div>
+          <div class="guide-desc">本調理の前に一度茹でておく。根菜・こんにゃく・大豆などの下処理に。</div>
+          <div class="guide-tip">💡 竹串がスッと通るくらいが目安。煮崩れ防止にも</div>
+        </div>
+        <div class="guide-card-h">
+          <div style="font-size:32px;text-align:center;margin-bottom:6px">🫧</div>
+          <div class="guide-name">あく抜き</div>
+          <div class="guide-desc">茄子・ごぼう・山芋などの苦みや渋みを取る。水や酢水に浸すことが多い。</div>
+          <div class="guide-tip">💡 なす・ごぼうは切ったらすぐ水に入れる</div>
+        </div>
+        <div class="guide-card-h">
+          <div style="font-size:32px;text-align:center;margin-bottom:6px">🔪</div>
+          <div class="guide-name">面取り</div>
+          <div class="guide-desc">大根・にんじんなど根菜の角を包丁で薄く切り落とす。煮崩れを防ぎ見栄えが良くなる。</div>
+          <div class="guide-tip">💡 おでんや煮物など長時間煮込む料理に</div>
+        </div>
+        <div class="guide-card-h">
+          <div style="font-size:32px;text-align:center;margin-bottom:6px">🌿</div>
+          <div class="guide-name">板ずり</div>
+          <div class="guide-desc">きゅうりやオクラに塩を振り、まな板の上で転がす。表面の産毛が取れ色鮮やかになる。</div>
+          <div class="guide-tip">💡 漬物にする前の下処理として特に効果的</div>
+        </div>
+        <div class="guide-card-h">
+          <div style="font-size:32px;text-align:center;margin-bottom:6px">🍖</div>
+          <div class="guide-name">筋切り・叩き</div>
+          <div class="guide-desc">肉の筋に包丁で切り目を入れたり叩いて繊維をほぐす。縮みや反りを防ぎ、柔らかく仕上がる。</div>
+          <div class="guide-tip">💡 豚ロース・鶏むね肉は特に効果大</div>
+        </div>
+      </div>
+    </div>
+    <!-- 盛り付け -->
+    <div id="guide-plate" class="guide-section" style="display:none">
+      <div class="guide-list">
+        <div class="guide-card-h">
+          <div style="font-size:32px;text-align:center;margin-bottom:6px">⬜</div>
+          <div class="guide-name">余白を作る</div>
+          <div class="guide-desc">皿の縁から2〜3cm空けて盛る。食材を詰め込みすぎず「余白」を意識するだけで格段に美しくなる。</div>
+          <div class="guide-tip">💡 皿の7割に盛るのが基本バランス</div>
+        </div>
+        <div class="guide-card-h">
+          <div style="font-size:32px;text-align:center;margin-bottom:6px">📐</div>
+          <div class="guide-name">高さを出す</div>
+          <div class="guide-desc">食材を平らに並べるだけでなく、中央を高くこんもり盛る。立体感が出て料理が豪華に見える。</div>
+          <div class="guide-tip">💡 葉物野菜を下に敷くと高さが出しやすい</div>
+        </div>
+        <div class="guide-card-h">
+          <div style="font-size:32px;text-align:center;margin-bottom:6px">🎨</div>
+          <div class="guide-name">色のバランス</div>
+          <div class="guide-desc">赤・緑・黄・白・黒の「五色」を意識する。同系色が重ならないよう配置すると彩りよく見える。</div>
+          <div class="guide-tip">💡 ミニトマト・パセリ・卵は万能な差し色</div>
+        </div>
+        <div class="guide-card-h">
+          <div style="font-size:32px;text-align:center;margin-bottom:6px">🌿</div>
+          <div class="guide-name">薬味・トッピング</div>
+          <div class="guide-desc">刻みねぎ・ごま・海苔・大葉・レモンなどを最後に添える。香りと彩りが加わり完成度が上がる。</div>
+          <div class="guide-tip">💡 仕上げの一手間が「手作り感」を演出</div>
+        </div>
+        <div class="guide-card-h">
+          <div style="font-size:32px;text-align:center;margin-bottom:6px">💧</div>
+          <div class="guide-name">水気を取る</div>
+          <div class="guide-desc">盛り付け前にキッチンペーパーで水気を拭く。皿が水っぽくならず、タレや汁が薄まらない。</div>
+          <div class="guide-tip">💡 サラダ・揚げ物・煮物で特に重要</div>
+        </div>
+        <div class="guide-card-h">
+          <div style="font-size:32px;text-align:center;margin-bottom:6px">🍶</div>
+          <div class="guide-name">ソース・タレの引き方</div>
+          <div class="guide-desc">皿にソースを流す場合は中央より少しずらして。スプーンの背で伸ばすとレストラン風に。</div>
+          <div class="guide-tip">💡 ソースは食材の下に敷くと洗練された印象</div>
+        </div>
+        <div class="guide-card-h">
+          <div style="font-size:32px;text-align:center;margin-bottom:6px">🔲</div>
+          <div class="guide-name">器の選び方</div>
+          <div class="guide-desc">和食には丸皿・白皿、洋食には四角や色付き皿が映える。料理の色と反対色の器を選ぶと際立つ。</div>
+          <div class="guide-tip">💡 白い器は万能。迷ったら白を選ぶ</div>
+        </div>
+        <div class="guide-card-h">
+          <div style="font-size:32px;text-align:center;margin-bottom:6px">🌡️</div>
+          <div class="guide-name">温度と提供タイミング</div>
+          <div class="guide-desc">温かい料理は温めた皿に、冷たい料理は冷やした皿に盛る。食べる直前に仕上げると美味しさが伝わる。</div>
+          <div class="guide-tip">💡 皿は電子レンジ30秒で温められる</div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- Detail Modal -->
 <div class="modal-bg" id="detail-modal" onclick="closeDetailModal(event)">
-  <div class="modal" style="padding-bottom:32px;padding-top:0;padding-left:0;padding-right:0;overflow:hidden">
-    <div id="detail-image-wrap" style="display:none;margin-bottom:0">
-      <img id="detail-image" style="width:100%;height:200px;object-fit:cover;display:block">
+  <div class="modal" style="padding-top:0;padding-left:0;padding-right:0;overflow:hidden">
+    <div class="modal-body" style="padding:0 16px">
+    <div id="detail-image-wrap" style="display:none;margin:0 -16px 12px">
+      <img id="detail-image" style="width:100%;height:140px;object-fit:cover;display:block">
     </div>
-    <div style="padding:20px 16px">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
-      <div style="flex:1">
-        <div id="detail-name" style="font-size:22px;font-weight:800;margin-bottom:6px"></div>
-        <div id="detail-tags" style="margin-bottom:4px"></div>
-      </div>
-      <button id="detail-fav-btn" style="background:none;border:none;font-size:28px;cursor:pointer;padding:0 0 0 8px;line-height:1"></button>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin:16px 0 12px">
+      <div id="detail-name" style="font-size:22px;font-weight:800;line-height:1.4;flex:1"></div>
+      <button id="detail-fav-btn" style="background:none;border:none;font-size:26px;cursor:pointer;padding:0 0 0 8px;line-height:1;flex-shrink:0"></button>
     </div>
-    <div style="background:var(--surface2);border-radius:12px;padding:14px;margin-bottom:14px">
-      <div class="section-title" style="margin-bottom:8px">🧂 材料</div>
-      <div id="detail-ingredients" style="font-size:15px;line-height:1.9"></div>
+    <div style="margin-bottom:16px">
+      <div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:6px;letter-spacing:0.05em">🧂 材料</div>
+      <div id="detail-ingredients" style="font-size:14px;line-height:1.9"></div>
     </div>
-    <div id="detail-steps-wrap" style="background:var(--surface2);border-radius:12px;padding:14px;margin-bottom:16px;display:none">
-      <div class="section-title" style="margin-bottom:8px">👨‍🍳 作り方</div>
-      <div id="detail-steps" style="font-size:14px;line-height:1.8;color:var(--text)"></div>
+    <div id="detail-steps-wrap" style="margin-bottom:14px;display:none">
+      <div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:6px;letter-spacing:0.05em">👨‍🍳 作り方</div>
+      <div id="detail-steps" style="font-size:14px;color:var(--text)"></div>
+    </div>
+    <div id="detail-tags" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px"></div>
+    </div>
+    <div class="modal-footer" style="padding:12px 16px 32px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+      <button class="btn" style="background:var(--surface2);border:1px solid var(--border);margin-top:0;font-size:13px" id="detail-share-link-btn">🔗 リンク</button>
+      <button class="btn" style="background:var(--surface2);border:1px solid var(--border);margin-top:0;font-size:13px" id="detail-share-text-btn">📋 テキスト</button>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
       <button class="btn" style="background:var(--surface2);border:1px solid var(--border);margin-top:0;font-size:13px" onclick="closeDetailModal()">閉じる</button>
       <button class="btn btn-primary" style="margin-top:0;font-size:13px" id="detail-edit-btn">✏️ 編集</button>
       <button class="btn" style="background:transparent;border:1px solid var(--red);color:var(--red);margin-top:0;font-size:13px" id="detail-delete-btn">🗑️ 削除</button>
     </div>
-    </div><!-- /padding div -->
+    </div><!-- /modal-footer -->
   </div>
 </div>
 
@@ -385,10 +798,7 @@ textarea.input { resize: none; min-height: 80px; }
 
 <!-- Bottom Nav -->
 <div class="bottom-nav">
-  <button class="nav-btn active" id="btn-ingredients" onclick="showTab('ingredients')">
-    <span class="nav-icon">🥩</span>食材
-  </button>
-  <button class="nav-btn" id="btn-recipes" onclick="showTab('recipes')">
+  <button class="nav-btn active" id="btn-recipes" onclick="showTab('recipes')">
     <span class="nav-icon">📋</span>レシピ
   </button>
   <button class="nav-btn" id="btn-add-recipe" onclick="showTab('add-recipe')">
@@ -397,19 +807,211 @@ textarea.input { resize: none; min-height: 80px; }
   <button class="nav-btn" id="btn-plan" onclick="showTab('plan')">
     <span class="nav-icon">🍽️</span>献立
   </button>
+  <button class="nav-btn" id="btn-ingredients" onclick="showTab('ingredients')">
+    <span class="nav-icon">🥩</span>食材
+  </button>
   <button class="nav-btn" id="btn-shopping" onclick="showTab('shopping')">
     <span class="nav-icon">🛒</span>買い物
+  </button>
+  <button class="nav-btn" id="btn-guide" onclick="showTab('guide')">
+    <span class="nav-icon">📖</span>コツ
   </button>
 </div>
 
 <script>
-const TABS = ['ingredients','recipes','add-recipe','plan','shopping']
+// Supabase
+const { createClient } = supabase
+const sb = createClient('https://wowcltebmptglwrcrdny.supabase.co', 'sb_publishable_x1ohHg6XovkxexcdAytgQg_I9QWILQQ')
+let currentUser = null
+
+async function initAuth() {
+  const { data: { session } } = await sb.auth.getSession()
+  if (session) { currentUser = session.user; await onLogin() }
+  sb.auth.onAuthStateChange(async (event, session) => {
+    if (event === 'SIGNED_IN' && !currentUser) { currentUser = session.user; await onLogin() }
+    else if (event === 'SIGNED_OUT') { currentUser = null; onLogout() }
+  })
+}
+
+const DEFAULT_RECIPES = [
+  { name:'唐揚げ', servings:'4人分', ingredients:'鶏もも肉 400g,醤油 大さじ2,みりん 大さじ1,生姜 1かけ,にんにく 1片,片栗粉 大さじ4,サラダ油', steps:'鶏肉を一口大に切り醤油・みりん・生姜・にんにくで15分漬ける。片栗粉をまぶし170℃の油で4分揚げる。', categories:['メイン料理','揚げ物','弁当向け'], tags:['子供向け'] },
+  { name:'肉じゃが', servings:'4人分', ingredients:'牛肉 200g,じゃがいも 3個,玉ねぎ 1個,にんじん 1本,醤油 大さじ3,みりん 大さじ3,砂糖 大さじ1,だし 200ml,サラダ油', steps:'材料を切り炒める。だし・調味料を加えて落し蓋をして15分煮る。', categories:['メイン料理','鍋・煮物'], tags:[] },
+  { name:'豚の生姜焼き', servings:'2人分', ingredients:'豚ロース薄切り 200g,玉ねぎ 1/2個,生姜 1かけ,醤油 大さじ2,みりん 大さじ2,砂糖 小さじ1,サラダ油', steps:'玉ねぎを炒め豚肉を加える。生姜・醤油・みりん・砂糖を加えて炒め合わせる。', categories:['メイン料理','炒め物'], tags:['簡単'] },
+  { name:'ハンバーグ', servings:'2人分', ingredients:'合いびき肉 300g,玉ねぎ 1/2個,卵 1個,パン粉 大さじ4,牛乳 大さじ2,塩こしょう 少々,サラダ油', steps:'玉ねぎをみじん切りにして炒め冷ます。全材料をよくこねて成形し両面焼く。', categories:['メイン料理'], tags:['子供向け'] },
+  { name:'鶏の照り焼き', servings:'2人分', ingredients:'鶏もも肉 2枚,醤油 大さじ2,みりん 大さじ2,砂糖 大さじ1,サラダ油', steps:'鶏肉を皮目から焼き、火が通ったら調味料を加えて照りが出るまで絡める。', categories:['メイン料理'], tags:['簡単','弁当向け'] },
+  { name:'鮭の塩焼き', servings:'2人分', ingredients:'鮭 2切れ,塩 少々,レモン', steps:'鮭に塩を振り10分置いてグリルで両面焼く。', categories:['メイン料理'], tags:['簡単','弁当向け'] },
+  { name:'ぶりの照り焼き', servings:'2人分', ingredients:'ぶり 2切れ,醤油 大さじ2,みりん 大さじ2,砂糖 大さじ1,サラダ油', steps:'ぶりをフライパンで焼き、調味料を加えて照りが出るまで絡める。', categories:['メイン料理'], tags:[] },
+  { name:'鯖の味噌煮', servings:'2人分', ingredients:'鯖 2切れ,みそ 大さじ2,みりん 大さじ2,砂糖 大さじ1,酒 大さじ2,生姜 1かけ,水 100ml', steps:'調味料と水を煮立て鯖を加えて落し蓋で15分煮る。', categories:['メイン料理','鍋・煮物'], tags:[] },
+  { name:'えびチリ', servings:'2人分', ingredients:'えび 200g,長ねぎ 1/2本,にんにく 1片,生姜 1かけ,ケチャップ 大さじ3,豆板醤 小さじ1,鶏ガラスープ 100ml,片栗粉,サラダ油', steps:'えびに片栗粉をまぶして炒める。野菜を炒め調味料を加えてえびと絡める。', categories:['メイン料理'], tags:[] },
+  { name:'麻婆豆腐', servings:'2人分', ingredients:'豚ひき肉 150g,絹ごし豆腐 1丁,長ねぎ 1/2本,にんにく 1片,生姜 1かけ,豆板醤 小さじ1,甜麺醤 大さじ1,醤油 大さじ1,鶏ガラスープ 150ml,片栗粉,ごま油', steps:'ひき肉と香味野菜を炒め調味料とスープを加え豆腐を入れて煮る。片栗粉でとろみをつけごま油で仕上げる。', categories:['メイン料理'], tags:[] },
+  { name:'餃子', servings:'2人分', ingredients:'豚ひき肉 200g,キャベツ 1/4個,にら 1束,にんにく 1片,生姜 1かけ,醤油 大さじ1,ごま油 大さじ1,餃子の皮 30枚', steps:'キャベツを塩揉みして絞る。全材料を混ぜて皮で包みフライパンで焼く。', categories:['メイン料理'], tags:['子供向け'] },
+  { name:'豚バラ大根', servings:'4人分', ingredients:'豚バラ肉 200g,大根 1/2本,醤油 大さじ3,みりん 大さじ3,砂糖 大さじ1,だし 300ml,生姜 1かけ', steps:'大根を下茹でする。豚肉を炒め大根・調味料を加えて20分煮る。', categories:['鍋・煮物'], tags:[] },
+  { name:'鶏肉のトマト煮', servings:'4人分', ingredients:'鶏もも肉 400g,トマト缶 1缶,玉ねぎ 1個,にんにく 2片,オリーブオイル,塩こしょう,バジル', steps:'玉ねぎ・にんにくを炒め鶏肉を加える。トマト缶を入れて20分煮込む。', categories:['メイン料理','鍋・煮物'], tags:[] },
+  { name:'回鍋肉', servings:'2人分', ingredients:'豚バラ肉 200g,キャベツ 1/4個,ピーマン 2個,長ねぎ 1/2本,豆板醤 小さじ1,甜麺醤 大さじ2,醤油 大さじ1,ごま油', steps:'野菜と豚肉を炒め調味料を加えて炒め合わせる。', categories:['メイン料理','炒め物'], tags:['簡単'] },
+  { name:'チキンカツ', servings:'2人分', ingredients:'鶏むね肉 2枚,卵 1個,パン粉 適量,小麦粉 適量,塩こしょう,サラダ油', steps:'鶏肉を薄く開いて塩こしょう。小麦粉・卵・パン粉の順につけ揚げる。', categories:['メイン料理','揚げ物','弁当向け'], tags:['子供向け'] },
+  { name:'豚の角煮', servings:'4人分', ingredients:'豚バラ肉 500g,醤油 大さじ4,みりん 大さじ4,砂糖 大さじ2,酒 大さじ4,生姜 2かけ,長ねぎ 1本', steps:'豚肉を下茹でして切る。調味料と一緒に弱火で1時間煮込む。', categories:['メイン料理','鍋・煮物'], tags:[] },
+  { name:'カレーライス', servings:'4人分', ingredients:'鶏肉 300g,玉ねぎ 2個,じゃがいも 3個,にんじん 1本,カレールー 1箱,水 800ml,サラダ油', steps:'野菜と肉を炒め水を加えて15分煮る。火を止めてカレールーを入れてさらに10分煮る。', categories:['メイン料理','ご飯もの'], tags:['子供向け'] },
+  { name:'チャーハン', servings:'2人分', ingredients:'ご飯 2膳,卵 2個,長ねぎ 1/2本,醤油 大さじ1,ごま油 小さじ1,塩こしょう,サラダ油', steps:'強火でご飯を炒め卵を加える。長ねぎ・醤油・ごま油で仕上げる。', categories:['ご飯もの'], tags:['簡単'] },
+  { name:'親子丼', servings:'2人分', ingredients:'鶏もも肉 200g,玉ねぎ 1/2個,卵 3個,醤油 大さじ2,みりん 大さじ2,砂糖 大さじ1,だし 150ml,ご飯 2膳', steps:'だし・調味料で鶏肉と玉ねぎを煮る。溶き卵を回し入れて半熟でご飯に乗せる。', categories:['ご飯もの'], tags:['簡単'] },
+  { name:'オムライス', servings:'2人分', ingredients:'卵 4個,鶏肉 100g,玉ねぎ 1/2個,ご飯 2膳,ケチャップ 大さじ3,バター,塩こしょう', steps:'鶏肉・玉ねぎをバターで炒めご飯・ケチャップを加えてチキンライスを作る。卵で包む。', categories:['ご飯もの'], tags:['子供向け'] },
+  { name:'牛丼', servings:'2人分', ingredients:'牛薄切り肉 200g,玉ねぎ 1個,醤油 大さじ3,みりん 大さじ3,砂糖 大さじ1,だし 200ml,ご飯 2膳', steps:'だし・調味料で玉ねぎを煮て牛肉を加えてさっと煮る。ご飯に乗せる。', categories:['ご飯もの'], tags:['簡単'] },
+  { name:'焼きそば', servings:'2人分', ingredients:'中華麺 2玉,豚バラ肉 150g,キャベツ 1/4個,もやし 1袋,にんじん 1/3本,ソース 大さじ3,サラダ油,青のり', steps:'豚肉・野菜を炒めて麺を加える。ソースで味付けして青のりをかける。', categories:['麺','炒め物'], tags:['子供向け'] },
+  { name:'パスタ ナポリタン', servings:'2人分', ingredients:'パスタ 200g,玉ねぎ 1/2個,ピーマン 2個,ウインナー 4本,ケチャップ 大さじ4,バター,塩こしょう,粉チーズ', steps:'パスタを茹でる。野菜・ウインナーをバターで炒めケチャップとパスタを絡める。', categories:['麺'], tags:['子供向け'] },
+  { name:'カルボナーラ', servings:'2人分', ingredients:'パスタ 200g,ベーコン 80g,卵 2個,粉チーズ 大さじ4,黒こしょう,オリーブオイル', steps:'パスタを茹でる。ベーコンを炒め火を止めてパスタ・卵・チーズを絡める。', categories:['麺'], tags:[] },
+  { name:'冷やし中華', servings:'2人分', ingredients:'中華麺 2玉,きゅうり 1本,ハム 4枚,卵 2個,トマト 1個,ごまだれ,からし', steps:'麺を茹でて冷水で冷やす。具材を乗せてたれをかける。', categories:['麺'], tags:[] },
+  { name:'ポテトサラダ', servings:'4人分', ingredients:'じゃがいも 4個,にんじん 1/2本,玉ねぎ 1/4個,きゅうり 1本,ハム 4枚,マヨネーズ 大さじ4,塩こしょう', steps:'野菜を茹でてつぶす。冷ましてハム・マヨネーズで和える。', categories:['副菜','サラダ'], tags:['子供向け'] },
+  { name:'きんぴらごぼう', servings:'4人分', ingredients:'ごぼう 1本,にんじん 1/2本,醤油 大さじ2,みりん 大さじ2,砂糖 大さじ1,ごま油,ごま', steps:'ごぼう・にんじんを炒め調味料で味付けする。', categories:['副菜'], tags:['弁当向け'] },
+  { name:'ほうれん草のおひたし', servings:'2人分', ingredients:'ほうれん草 1束,醤油 大さじ1,だし 大さじ2,かつお節', steps:'ほうれん草を茹でて水気を絞る。だし醤油で和えてかつお節をかける。', categories:['副菜'], tags:['簡単','ヘルシー'] },
+  { name:'卵焼き', servings:'2人分', ingredients:'卵 3個,醤油 小さじ1,みりん 大さじ1,砂糖 小さじ1,だし 大さじ2', steps:'卵を溶き調味料と混ぜる。巻き焼きにする。', categories:['副菜','弁当向け'], tags:['子供向け','簡単'] },
+  { name:'かぼちゃの煮物', servings:'4人分', ingredients:'かぼちゃ 1/4個,醤油 大さじ2,みりん 大さじ2,砂糖 大さじ1,だし 200ml', steps:'かぼちゃを切りだし・調味料で柔らかくなるまで煮る。', categories:['副菜','鍋・煮物'], tags:['子供向け'] },
+  { name:'ひじきの煮物', servings:'4人分', ingredients:'ひじき 30g,油揚げ 1枚,にんじん 1/2本,醤油 大さじ2,みりん 大さじ2,砂糖 大さじ1,だし 150ml', steps:'ひじきを戻して材料と炒め調味料で煮る。', categories:['副菜','鍋・煮物'], tags:[] },
+  { name:'茄子の煮びたし', servings:'2人分', ingredients:'なす 4本,だし 200ml,醤油 大さじ2,みりん 大さじ2,ごま油', steps:'なすを揚げ焼きにして熱いうちにだし醤油に漬ける。', categories:['副菜'], tags:['ヘルシー'] },
+  { name:'もやし炒め', servings:'2人分', ingredients:'もやし 2袋,にら 1/2束,醤油 大さじ1,ごま油 大さじ1,塩こしょう,にんにく 1片', steps:'にんにくをごま油で炒めもやし・にらを加えて強火で炒める。', categories:['副菜','炒め物'], tags:['簡単','節約'] },
+  { name:'白和え', servings:'4人分', ingredients:'木綿豆腐 1丁,ほうれん草 1/2束,にんじん 1/3本,ごま 大さじ2,砂糖 大さじ1,醤油 大さじ1,みそ 小さじ1', steps:'豆腐の水気を切ってつぶす。茹でた野菜とごま・調味料で和える。', categories:['副菜'], tags:['ヘルシー'] },
+  { name:'切り干し大根の煮物', servings:'4人分', ingredients:'切り干し大根 30g,にんじん 1/3本,油揚げ 1枚,醤油 大さじ2,みりん 大さじ2,砂糖 大さじ1,だし 200ml', steps:'切り干し大根を戻して材料と調味料で煮る。', categories:['副菜','鍋・煮物'], tags:['節約'] },
+  { name:'ブロッコリーのサラダ', servings:'2人分', ingredients:'ブロッコリー 1株,コーン 50g,マヨネーズ 大さじ2,塩こしょう', steps:'ブロッコリーを茹でて冷ます。コーン・マヨネーズで和える。', categories:['副菜','サラダ'], tags:['子供向け','簡単'] },
+  { name:'大根サラダ', servings:'2人分', ingredients:'大根 1/4本,きゅうり 1本,にんじん 1/4本,ポン酢 大さじ2,ごま油 小さじ1,ごま', steps:'大根・きゅうり・にんじんを千切りにして水にさらす。水気を切りポン酢・ごま油で和える。', categories:['副菜','サラダ'], tags:['ヘルシー','簡単'] },
+  { name:'コールスロー', servings:'4人分', ingredients:'キャベツ 1/4個,にんじん 1/4本,コーン 50g,マヨネーズ 大さじ3,砂糖 小さじ1,塩こしょう,酢 小さじ1', steps:'キャベツ・にんじんを千切りにして塩揉みして水気を絞る。調味料で和える。', categories:['副菜','サラダ'], tags:['節約'] },
+  { name:'味噌汁（豆腐・わかめ）', servings:'2人分', ingredients:'豆腐 1/2丁,わかめ 5g,長ねぎ 1/3本,みそ 大さじ2,だし 400ml', steps:'だしを沸かして豆腐・わかめを入れみそを溶かす。長ねぎを加える。', categories:['汁物'], tags:['簡単'] },
+  { name:'豚汁', servings:'4人分', ingredients:'豚バラ肉 150g,大根 1/4本,にんじん 1本,じゃがいも 1個,ごぼう 1/2本,こんにゃく 1/2枚,みそ 大さじ3,だし 800ml,ごま油', steps:'野菜・豚肉をごま油で炒めだしを加えて煮る。柔らかくなったらみそを溶く。', categories:['汁物'], tags:[] },
+  { name:'けんちん汁', servings:'4人分', ingredients:'木綿豆腐 1丁,大根 1/4本,にんじん 1本,ごぼう 1/2本,こんにゃく 1/2枚,醤油 大さじ2,だし 800ml,ごま油', steps:'豆腐を崩しながら野菜とごま油で炒める。だしを加えて煮て醤油で味付けする。', categories:['汁物'], tags:[] },
+  { name:'卵スープ', servings:'2人分', ingredients:'卵 2個,長ねぎ 1/3本,鶏ガラスープ 400ml,醤油 小さじ1,塩こしょう,ごま油', steps:'スープを沸かして溶き卵を回し入れる。長ねぎを加えて醤油・ごま油で仕上げる。', categories:['汁物'], tags:['簡単'] },
+  { name:'クラムチャウダー', servings:'4人分', ingredients:'あさり缶 1缶,じゃがいも 2個,玉ねぎ 1個,にんじん 1/2本,ベーコン 50g,牛乳 400ml,バター,小麦粉 大さじ2,塩こしょう', steps:'野菜・ベーコンをバターで炒め小麦粉を加える。牛乳・あさりを加えて煮る。', categories:['汁物'], tags:[] },
+  { name:'おでん', servings:'4人分', ingredients:'大根 1/2本,卵 4個,こんにゃく 1枚,ちくわ 4本,はんぺん 1枚,がんもどき 4個,だし 1L,醤油 大さじ3,みりん 大さじ3', steps:'大根・卵を下茹でする。だし・調味料で全材料を1時間以上煮込む。', categories:['鍋・煮物'], tags:['子供向け'] },
+  { name:'すき焼き', servings:'4人分', ingredients:'牛肉 400g,豆腐 1丁,白菜 1/4個,長ねぎ 2本,しいたけ 4枚,春菊 1束,糸こんにゃく 1袋,醤油 大さじ4,みりん 大さじ4,砂糖 大さじ2', steps:'牛肉を焼いて調味料を加える。野菜・豆腐を加えて煮る。', categories:['鍋・煮物'], tags:[] },
+  { name:'水炊き', servings:'4人分', ingredients:'鶏もも肉 400g,白菜 1/4個,豆腐 1丁,長ねぎ 2本,しめじ 1袋,春菊 1束,昆布だし 1L,ポン酢', steps:'昆布だしで鶏肉から煮始め野菜・豆腐を加えてポン酢で食べる。', categories:['鍋・煮物'], tags:[] },
+  { name:'グラタン', servings:'4人分', ingredients:'鶏もも肉 200g,マカロニ 100g,玉ねぎ 1個,バター 30g,小麦粉 大さじ3,牛乳 400ml,ピザ用チーズ 80g,塩こしょう', steps:'ホワイトソースを作り鶏肉・マカロニと合わせて耐熱皿に入れチーズをかけてオーブンで焼く。', categories:['メイン料理'], tags:['子供向け'] },
+  { name:'肉野菜炒め', servings:'2人分', ingredients:'豚こま肉 200g,キャベツ 1/4個,もやし 1袋,にんじん 1/3本,ピーマン 2個,醤油 大さじ2,酒 大さじ1,ごま油,塩こしょう', steps:'豚肉を炒めて野菜を加えて強火で炒め調味料で仕上げる。', categories:['炒め物'], tags:['簡単','節約'] },
+  { name:'チンジャオロース', servings:'2人分', ingredients:'牛肉 200g,ピーマン 4個,たけのこ 80g,醤油 大さじ2,オイスターソース 大さじ1,ごま油,片栗粉', steps:'牛肉を片栗粉でもみ炒める。野菜を加えて調味料で炒め合わせる。', categories:['炒め物'], tags:[] },
+  { name:'豆腐ステーキ', servings:'2人分', ingredients:'木綿豆腐 1丁,醤油 大さじ2,みりん 大さじ1,生姜 1かけ,長ねぎ 1/3本,ごま油,片栗粉', steps:'豆腐に片栗粉をまぶしてごま油で焼く。調味料・生姜・長ねぎでソースを作りかける。', categories:['副菜'], tags:['ヘルシー','節約'] },
+  { name:'コーンポタージュ', servings:'4人分', ingredients:'コーン缶 2缶,玉ねぎ 1個,バター 20g,小麦粉 大さじ2,牛乳 400ml,コンソメ 1個,塩こしょう', steps:'玉ねぎをバターで炒め小麦粉を加える。コーン・スープを加えてミキサーにかける。牛乳を加えて温める。', categories:['汁物'], tags:['子供向け'] },
+  { name:'フレンチトースト', servings:'2人分', ingredients:'食パン 4枚,卵 2個,牛乳 100ml,砂糖 大さじ2,バター,メープルシロップ', steps:'卵・牛乳・砂糖を混ぜパンを浸す。バターで両面焼く。', categories:['朝食向け','デザート'], tags:['子供向け','簡単'] },
+  { name:'野菜スープ', servings:'4人分', ingredients:'じゃがいも 2個,にんじん 1本,玉ねぎ 1個,キャベツ 1/4個,ベーコン 50g,コンソメ 2個,水 800ml,塩こしょう', steps:'野菜・ベーコンを炒めて水・コンソメを加えて15分煮る。', categories:['汁物'], tags:['子供向け','ヘルシー'] },
+]
+
+async function onLogin() {
+  document.getElementById('auth-screen').classList.remove('show')
+  document.getElementById('user-bar').style.display = 'flex'
+  document.getElementById('user-email').textContent = currentUser.email || ''
+  await loadRecipes()
+  if (recipes.length === 0) await insertDefaultRecipes()
+  renderIngredients()
+  showTab('recipes')
+}
+
+async function insertDefaultRecipes() {
+  const rows = DEFAULT_RECIPES.map(r => ({ ...r, user_id: currentUser.id, image: '' }))
+  const { data, error } = await sb.from('recipes').insert(rows).select()
+  if (!error && data) recipes = data.map(r => ({ ...r, categories: r.categories || [], tags: r.tags || [] }))
+}
+
+function onLogout() {
+  recipes = []
+  document.getElementById('auth-screen').classList.add('show')
+  document.getElementById('user-bar').style.display = 'none'
+}
+
+let authMode = 'login'
+function setAuthMode(mode) {
+  authMode = mode
+  clearAuthError()
+  document.querySelectorAll('.auth-tab').forEach(el => {
+    el.classList.toggle('active', el.getAttribute('onclick').includes(`'${mode}'`))
+  })
+  document.getElementById('auth-btn').textContent = mode === 'login' ? 'ログイン' : '新規登録'
+  document.getElementById('forgot-pw-wrap').style.display = mode === 'login' ? 'block' : 'none'
+}
+
+async function forgotPassword() {
+  const email = document.getElementById('auth-email').value.trim()
+  clearAuthError()
+  if (!email) {
+    showAuthError('メールアドレスを入力してからボタンを押してください')
+    return
+  }
+  const { error } = await sb.auth.resetPasswordForEmail(email, {
+    redirectTo: location.origin + location.pathname
+  })
+  if (error) {
+    showAuthError(translateAuthError(error.message))
+  } else {
+    const el = document.getElementById('auth-error')
+    el.textContent = '✅ パスワードリセットのメールを送りました。メールを確認してください。'
+    el.style.background = '#f0fff4'
+    el.style.borderColor = 'var(--green)'
+    el.style.color = 'var(--green)'
+    el.classList.add('show')
+  }
+}
+
+function showAuthError(msg) {
+  const el = document.getElementById('auth-error')
+  el.textContent = msg
+  el.classList.add('show')
+}
+
+function clearAuthError() {
+  const el = document.getElementById('auth-error')
+  el.textContent = ''
+  el.classList.remove('show')
+}
+
+function translateAuthError(msg) {
+  if (!msg) return '不明なエラーが発生しました'
+  if (msg.includes('Email not confirmed')) return 'メールアドレスの確認が完了していません。届いた確認メールのリンクをクリックしてください。'
+  if (msg.includes('Invalid login credentials') || msg.includes('invalid_credentials')) return 'メールアドレスまたはパスワードが違います。'
+  if (msg.includes('User already registered')) return 'このメールアドレスはすでに登録されています。ログインしてください。'
+  if (msg.includes('Password should be at least')) return 'パスワードは6文字以上にしてください。'
+  if (msg.includes('Unable to validate email address')) return 'メールアドレスの形式が正しくありません。'
+  if (msg.includes('rate limit') || msg.includes('too many')) return 'しばらく時間をおいてから再度お試しください。'
+  return msg
+}
+
+async function authAction() {
+  const email = document.getElementById('auth-email').value.trim()
+  const password = document.getElementById('auth-password').value.trim()
+  clearAuthError()
+  if (!email || !password) { showAuthError('メールアドレスとパスワードを入力してください'); return }
+  const btn = document.getElementById('auth-btn')
+  btn.disabled = true; btn.textContent = '処理中...'
+  try {
+    if (authMode === 'login') {
+      const { error } = await sb.auth.signInWithPassword({ email, password })
+      if (error) throw error
+    } else {
+      const { error } = await sb.auth.signUp({ email, password })
+      if (error) throw error
+      showAuthError('✅ 確認メールを送りました。メール内のリンクをクリックしてからログインしてください。')
+      document.getElementById('auth-error').style.background = '#f0fff4'
+      document.getElementById('auth-error').style.borderColor = 'var(--green)'
+      document.getElementById('auth-error').style.color = 'var(--green)'
+    }
+  } catch (e) {
+    showAuthError(translateAuthError(e.message))
+  } finally {
+    btn.disabled = false
+    btn.textContent = authMode === 'login' ? 'ログイン' : '新規登録'
+  }
+}
+
+async function signInWithGoogle() {
+  const { error } = await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.origin + location.pathname } })
+  if (error) notify('Googleログインに失敗しました')
+}
+
+async function signOut() {
+  await sb.auth.signOut()
+}
+
+// App
+const TABS = ['ingredients','recipes','add-recipe','plan','shopping','guide']
 function safeGet(key) {
   try { return JSON.parse(localStorage.getItem(key) || '[]') } catch { return [] }
 }
 let ingredients = safeGet('ingredients')
-let recipes = safeGet('recipes')
+let recipes = []
 let shoppingList = safeGet('shoppingList')
+
 async function callApi(body) {
   const res = await fetch('/api/suggest', {
     method: 'POST',
@@ -426,8 +1028,8 @@ function showTab(tab) {
     document.getElementById('tab-' + t).style.display = t === tab ? 'block' : 'none'
     document.getElementById('btn-' + t).classList.toggle('active', t === tab)
   })
-  if (tab === 'recipes') { renderRecipes() }
-  if (tab === 'add-recipe') { initCatSelect() }
+  if (tab === 'recipes') renderRecipes()
+  if (tab === 'add-recipe') initCatSelect()
   if (tab === 'shopping') renderShopping()
 }
 
@@ -441,7 +1043,7 @@ function notify(msg) {
 // 食材管理
 function renderIngredients() {
   const el = document.getElementById('ing-tags')
-  el.innerHTML = ingredients.map((ing, i) => 
+  el.innerHTML = ingredients.map((ing, i) =>
     `<span class="tag tag-remove" onclick="removeIngredient(${i})">✕ ${ing}</span>`
   ).join('')
 }
@@ -465,17 +1067,27 @@ document.getElementById('ing-input').addEventListener('keydown', e => {
   if (e.key === 'Enter') addIngredient()
 })
 
-// レシピ管理
-function saveRecipe() {
+// レシピ管理（Supabase）
+async function loadRecipes() {
+  const { data, error } = await sb.from('recipes').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false })
+  if (error) { notify('レシピの読み込みに失敗しました'); return }
+  recipes = (data || []).map(r => ({ ...r, categories: r.categories || [], tags: r.tags || [] }))
+}
+
+async function saveRecipe() {
   const name = document.getElementById('recipe-name').value.trim()
   const ings = document.getElementById('recipe-ingredients').value.trim()
   const steps = document.getElementById('recipe-steps').value.trim()
   const servings = document.getElementById('recipe-servings').value.trim()
   const categories = getSelectedCats('recipe-cat-select')
+  const tags = [...document.querySelectorAll('#recipe-spec-tags .spec-tag.active')].map(el => el.textContent.trim())
   const image = document.getElementById('recipe-image-input')._base64 || ''
   if (!name || !ings) { notify('料理名と材料は必須です'); return }
-  recipes.push({ id: Date.now(), name, servings, ingredients: ings, steps, categories, image })
-  localStorage.setItem('recipes', JSON.stringify(recipes))
+  const { data, error } = await sb.from('recipes').insert({
+    user_id: currentUser.id, name, servings, ingredients: ings, steps, categories, image, tags
+  }).select().single()
+  if (error) { notify('保存に失敗しました: ' + error.message); return }
+  recipes.unshift({ ...data, categories: data.categories || [], tags: data.tags || [] })
   document.getElementById('recipe-name').value = ''
   document.getElementById('recipe-servings').value = ''
   document.getElementById('recipe-ingredients').value = ''
@@ -486,9 +1098,10 @@ function saveRecipe() {
   showTab('recipes')
 }
 
-function deleteRecipe(id) {
+async function deleteRecipe(id) {
+  const { error } = await sb.from('recipes').delete().eq('id', id).eq('user_id', currentUser.id)
+  if (error) { notify('削除に失敗しました'); return }
   recipes = recipes.filter(r => r.id !== id)
-  localStorage.setItem('recipes', JSON.stringify(recipes))
   renderRecipes()
 }
 
@@ -500,10 +1113,14 @@ let selectedTags = new Set()
 let recipeView = 'list'
 let selectedIngredient = null
 
-function initCatSelect(selectedCats = []) {
+function initCatSelect(selectedCats = [], selectedTagsList = []) {
   const el = document.getElementById('recipe-cat-select')
   el.innerHTML = CATEGORIES.map(c =>
     `<span class="cat-tag cat-${c} ${selectedCats.includes(c) ? 'active' : ''}" onclick="toggleCatSelect('${c}', this)">${c}</span>`
+  ).join('')
+  const tagEl = document.getElementById('recipe-spec-tags')
+  if (tagEl) tagEl.innerHTML = SPEC_TAGS.map(t =>
+    `<span class="spec-tag spec-${t} ${selectedTagsList.includes(t) ? 'active' : ''}" onclick="this.classList.toggle('active')">${t}</span>`
   ).join('')
 }
 
@@ -566,12 +1183,21 @@ function setRecipeView(view) {
 function renderIngredientView() {
   // 全レシピから食材を抽出してユニーク化
   const allIngs = {}
-  const SKIP_WORDS = ['塩','砂糖','醤油','しょうゆ','味噌','みそ','みりん','料理酒','日本酒','ワイン','酢','油','オイル','バター','マーガリン','ラード','だし','コンソメ','ブイヨン','鶏ガラ','昆布','かつお','めんつゆ','白だし','ほんだし','味の素','うま味','水','お湯','湯','牛乳','豆乳','生クリーム','ミルク','小麦粉','薄力粉','強力粉','片栗粉','コーンスターチ','米粉','パン粉','天ぷら粉','ケチャップ','マヨネーズ','ソース','ウスター','ドレッシング','ポン酢','タバスコ','チリソース','オイスターソース','ナンプラー','豆板醤','甜麺醤','コチュジャン','コショウ','胡椒','七味','山椒','わさび','からし','マスタード','カレー粉','ターメリック','クミン','パプリカ','シナモン','ナツメグ','ローリエ','タイム','ローズマリー','バジル','オレガノ','パセリ','にんにく','ニンニク','生姜','しょうが','ショウガ','鷹の爪','唐辛子','青のり','刻みネギ','小ネギ','青ネギ','万能ネギ','みょうが','大葉','ゆず','レモン汁','ライム汁','ごま','かつお節','桜えび','天かす','揚げ玉','はちみつ','蜂蜜','メープル','塩麹','酒粕','黒糖','きび砂糖','グラニュー糖','チューブ','少々','適量','適宜','少量']
+  const SKIP_WORDS = ['塩','砂糖','醤油','しょうゆ','味噌','みそ','みりん','料理酒','日本酒','酒','ワイン','酢','油','オイル','バター','マーガリン','ラード','だし','コンソメ','ブイヨン','鶏ガラ','昆布','かつお','めんつゆ','白だし','ほんだし','味の素','うま味','水','お湯','湯','牛乳','豆乳','生クリーム','ミルク','小麦粉','薄力粉','強力粉','片栗粉','コーンスターチ','米粉','パン粉','天ぷら粉','ケチャップ','マヨネーズ','ソース','ウスター','ドレッシング','ポン酢','タバスコ','チリソース','オイスターソース','ナンプラー','豆板醤','甜麺醤','コチュジャン','コショウ','こしょう','胡椒','七味','山椒','わさび','からし','マスタード','カレー粉','ターメリック','クミン','パプリカ','シナモン','ナツメグ','ローリエ','タイム','ローズマリー','バジル','オレガノ','パセリ','にんにく','ニンニク','生姜','しょうが','ショウガ','鷹の爪','唐辛子','青のり','刻みネギ','小ネギ','青ネギ','万能ネギ','みょうが','大葉','ゆず','レモン汁','ライム汁','ごま','かつお節','桜えび','天かす','揚げ玉','はちみつ','蜂蜜','メープル','塩麹','酒粕','黒糖','きび砂糖','グラニュー糖','チューブ','少々','適量','適宜','少量','大さじ','小さじ','カップ','ふりかけ','だしの素','鶏がら','顆粒','スープの素']
   const isSeasoning = ing => SKIP_WORDS.some(k => ing.includes(k))
   recipes.forEach(r => {
     r.ingredients.split(/[,、，]+/).map(i =>
-      i.trim().replace(/[\d０-９]+\s*(?:g|ml|cc|kg|L|個|枚|本|袋|缶|パック|カップ|大さじ|小さじ|少々|適量|少量|適宜)[^\S]*/gi, '').trim()
-    ).filter(ing => ing && !isSeasoning(ing)).forEach(ing => {
+      i.trim()
+        .replace(/[（(][^）)]*[）)]/g, '')
+        .replace(/or\s+\S+/gi, '')
+        .replace(/[・…\.]{2,}\s*[\d０-９½⅓¼]*\s*(?:cm|mm|g|ml|cc|kg|L|個|枚|本|袋|缶|パック|カップ|大さじ|小さじ|少々|適量|少量|適宜|合|切れ|尾|羽|匹|頭)?/gi, '')
+        .replace(/[\d０-９½⅓¼]+\s*(?:cm|mm|g|ml|cc|kg|L|個|枚|本|袋|缶|パック|カップ|大さじ|小さじ|少々|適量|少量|適宜|合|切れ|尾|羽|匹|頭)[^\S]*/gi, '')
+        .replace(/少々|適量|適宜|少量/g, '')
+        .replace(/千切り|みじん切り|薄切り|輪切り|乱切り|ざく切り|短冊切り|半月切り|いちょう切り|角切り|細切り|ぶつ切り|そぎ切り|小口切り|すりおろし|すり下ろし|みじん|ほぐし|刻み|千切|一口大|小口|斜め切り/g, '')
+        .replace(/[0-9０-９½⅓¼][0-9０-９\.\/]*/g, '')
+        .replace(/[a-zA-Z]+/g, '')
+        .replace(/\s+/g, '').trim()
+    ).filter(ing => ing && ing.length >= 2 && !isSeasoning(ing)).forEach(ing => {
       if (!allIngs[ing]) allIngs[ing] = []
       allIngs[ing].push(r)
     })
@@ -604,7 +1230,7 @@ function renderIngredientView() {
     <div class="section-title" style="margin-bottom:8px">「${selectedIngredient}」を使うレシピ（${matched.length}件）</div>
     ${matched.map(r => {
       const cats = r.categories?.length ? r.categories : (r.category ? [r.category] : [])
-      return `<div class="recipe-item" style="cursor:pointer" onclick="openDetailModal(${r.id})">
+      return `<div class="recipe-item" style="cursor:pointer" onclick="openDetailModal('${r.id}')">
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px">
           <span class="recipe-name">${r.name}</span>
           ${cats.map(c => `<span class="cat-tag cat-${c}">${c}</span>`).join('')}
@@ -628,7 +1254,7 @@ async function searchOnlineRecipes() {
   }
 
   const el = document.getElementById('search-results')
-  el.innerHTML = '<div class="loading">🌐 ネットでレシピを検索中...</div>'
+  el.innerHTML = '<div class="loading">🤖 AIがレシピを考えています...</div>'
 
   try {
     const text = await callApi({ type: 'search', ingredients: searchIngs })
@@ -637,21 +1263,31 @@ async function searchOnlineRecipes() {
     const found = JSON.parse(match[0])
 
     el.innerHTML = `
-      <div class="section-title" style="margin-bottom:8px">「${searchIngs.slice(0,3).join('・')}」のレシピ（${found.length}件）</div>
-      ${found.map((r, i) => `
-        <div class="recipe-item" style="margin-bottom:8px">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
-            <span class="recipe-name">${r.name}</span>
-            ${r.servings ? `<span style="font-size:12px;color:var(--accent);font-weight:700">${r.servings}</span>` : ''}
+      <div class="section-title" style="margin-bottom:10px">「${searchIngs.slice(0,3).join('・')}」のレシピ（${found.length}件）</div>
+      ${found.map((r, i) => {
+        const ings = (r.ingredients || '').split(/[,，、]/).map(s => s.trim()).filter(Boolean)
+        const stepSentences = (r.steps || '').split(/[。\.]\s*/).filter(Boolean)
+        return `
+        <div class="search-recipe-card">
+          <div class="search-recipe-header">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+              <span class="recipe-name">${r.name}</span>
+              ${r.servings ? `<span style="font-size:12px;color:var(--accent);font-weight:700;white-space:nowrap">${r.servings}</span>` : ''}
+            </div>
           </div>
-          <div class="recipe-meta" style="margin-bottom:4px">🧂 ${r.ingredients}</div>
-          ${r.steps ? `<div class="recipe-meta">${r.steps}</div>` : ''}
-          ${r.source ? `<div class="recipe-meta" style="margin-top:4px;color:var(--green)">📌 ${r.source}</div>` : ''}
-          <div class="recipe-actions" style="margin-top:8px">
-            <button class="btn btn-small" style="background:var(--green);color:#fff;border:none" onclick="addFoundRecipe(${i})">+ 登録する</button>
+          <div class="search-recipe-body">
+            <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:2px">🧂 材料</div>
+            <div class="ing-chips">${ings.map(s => `<span class="ing-chip">${s}</span>`).join('')}</div>
+            ${stepSentences.length ? `
+              <div style="font-size:11px;font-weight:700;color:var(--text2);margin:8px 0 2px">📋 作り方</div>
+              <ol class="steps-list">${stepSentences.map((s, n) => `<li data-n="${n+1}">${s}</li>`).join('')}</ol>
+            ` : ''}
+            <div style="margin-top:10px">
+              <button class="btn btn-small" style="background:var(--green);color:#fff;border:none;width:100%" onclick="addFoundRecipe(${i})">+ このレシピを登録する</button>
+            </div>
           </div>
-        </div>
-      `).join('')}
+        </div>`
+      }).join('')}
     `
     // 検索結果を一時保存
     window._foundRecipes = found
@@ -660,11 +1296,15 @@ async function searchOnlineRecipes() {
   }
 }
 
-function addFoundRecipe(i) {
+async function addFoundRecipe(i) {
   const r = window._foundRecipes?.[i]
   if (!r) return
-  recipes.push({ id: Date.now(), name: r.name, servings: r.servings || '', ingredients: r.ingredients, steps: r.steps || '', categories: [] })
-  localStorage.setItem('recipes', JSON.stringify(recipes))
+  const { data, error } = await sb.from('recipes').insert({
+    user_id: currentUser.id, name: r.name, servings: r.servings || '',
+    ingredients: r.ingredients, steps: r.steps || '', categories: [], tags: [], image: ''
+  }).select().single()
+  if (error) { notify('登録に失敗しました'); return }
+  recipes.unshift({ ...data, categories: data.categories || [], tags: data.tags || [] })
   notify(`「${r.name}」をレシピに登録しました！`)
   window._foundRecipes[i] = null
   const btn = event.target
@@ -718,19 +1358,21 @@ function renderRecipes() {
     const isFav = r.tags?.includes('お気に入り')
     const specTags = (r.tags || []).filter(t => t !== 'お気に入り')
     return `
-    <div class="recipe-item" style="cursor:pointer;overflow:hidden;padding:0" onclick="openDetailModal(${r.id})">
+    <div class="recipe-item" style="cursor:pointer;overflow:hidden;padding:0" onclick="openDetailModal('${r.id}')">
       ${r.image ? `<img src="${r.image}" style="width:100%;height:120px;object-fit:cover;display:block">` : ''}
       <div style="padding:12px 14px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
           <span class="recipe-name">${r.name}</span>
-          ${(r.categories?.length ? r.categories : (r.category ? [r.category] : [])).map(c => `<span class="cat-tag cat-${c}">${c}</span>`).join('')}
-          ${specTags.map(t => `<span class="spec-tag spec-${t} active" style="font-size:10px;padding:1px 7px">${t}</span>`).join('')}
+          ${r.servings ? `<span style="font-size:11px;color:var(--accent);font-weight:700">${r.servings}</span>` : ''}
         </div>
-        <button class="fav-btn" onclick="event.stopPropagation();toggleFav(${r.id})">${isFav ? '⭐' : '☆'}</button>
+        <button class="fav-btn" onclick="event.stopPropagation();toggleFav('${r.id}')">${isFav ? '⭐' : '☆'}</button>
       </div>
-      <div class="recipe-meta">材料: ${r.ingredients.slice(0,50)}${r.ingredients.length>50?'...':''}</div>
-      ${r.steps ? `<div class="recipe-meta" style="margin-top:2px">${r.steps.slice(0,40)}${r.steps.length>40?'...':''}</div>` : ''}
+      <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px">
+        ${(r.categories?.length ? r.categories : (r.category ? [r.category] : [])).map(c => `<span class="cat-tag cat-${c}">${c}</span>`).join('')}
+        ${specTags.map(t => `<span class="spec-tag spec-${t} active" style="font-size:10px;padding:1px 7px">${t}</span>`).join('')}
+      </div>
+      <div class="ing-chips">${r.ingredients.split(/[,，、]/).map(s=>s.trim()).filter(Boolean).slice(0,6).map(s=>`<span class="ing-chip">${s}</span>`).join('')}${r.ingredients.split(/[,，、]/).length>6?`<span class="ing-chip" style="color:var(--text2)">+${r.ingredients.split(/[,，、]/).length-6}</span>`:''}</div>
       </div>
     </div>`
   }).join('')
@@ -754,26 +1396,27 @@ function openDetailModal(id) {
   document.getElementById('detail-fav-btn').textContent = isFav ? '⭐' : '☆'
   document.getElementById('detail-fav-btn').onclick = () => { toggleFav(id); openDetailModal(id) }
 
-  // タグ表示
+  // 材料を縦リスト
+  const ings = r.ingredients.split(/[,、，]+/).map(i => i.trim()).filter(Boolean)
+  document.getElementById('detail-ingredients').innerHTML = ings.map(i => `・${i}`).join('<br>')
+
+  // 作り方を段落に分割
+  const stepsWrap = document.getElementById('detail-steps-wrap')
+  if (r.steps) {
+    stepsWrap.style.display = 'block'
+    const sentences = r.steps.split(/(?<=。)|(\n)/).filter(s => s && s.trim())
+    document.getElementById('detail-steps').innerHTML = sentences.map(s => `<p style="margin:0 0 8px;line-height:1.6">${s.trim()}</p>`).filter(Boolean).join('')
+  } else {
+    stepsWrap.style.display = 'none'
+  }
+
+  // タグを下部に表示
   const cats = r.categories?.length ? r.categories : (r.category ? [r.category] : [])
   const tagHtml = [
     ...cats.map(c => `<span class="cat-tag cat-${c}">${c}</span>`),
     ...allTags.filter(t => t !== 'お気に入り').map(t => `<span class="spec-tag spec-${t} active">${t}</span>`)
   ].join('')
   document.getElementById('detail-tags').innerHTML = tagHtml
-
-  // 材料を箇条書きに
-  const ings = r.ingredients.split(/[,、，]+/).map(i => i.trim()).filter(Boolean)
-  document.getElementById('detail-ingredients').innerHTML = ings.map(i => `• ${i}`).join('<br>')
-
-  // 作り方
-  const stepsWrap = document.getElementById('detail-steps-wrap')
-  if (r.steps) {
-    stepsWrap.style.display = 'block'
-    document.getElementById('detail-steps').textContent = r.steps
-  } else {
-    stepsWrap.style.display = 'none'
-  }
 
   // 編集ボタン
   document.getElementById('detail-edit-btn').onclick = () => { closeDetailModal(); openEditModal(id) }
@@ -782,6 +1425,8 @@ function openDetailModal(id) {
     deleteRecipe(id)
     closeDetailModal()
   }
+  document.getElementById('detail-share-link-btn').onclick = () => shareRecipeLink(id)
+  document.getElementById('detail-share-text-btn').onclick = () => shareRecipeText(id)
 
   document.getElementById('detail-modal').classList.add('show')
 }
@@ -791,13 +1436,14 @@ function closeDetailModal(e) {
   document.getElementById('detail-modal').classList.remove('show')
 }
 
-function toggleFav(id) {
+async function toggleFav(id) {
   const r = recipes.find(r => r.id === id)
   if (!r) return
   r.tags = r.tags || []
   if (r.tags.includes('お気に入り')) r.tags = r.tags.filter(t => t !== 'お気に入り')
   else r.tags.unshift('お気に入り')
-  localStorage.setItem('recipes', JSON.stringify(recipes))
+  const { error } = await sb.from('recipes').update({ tags: r.tags }).eq('id', id)
+  if (error) notify('更新に失敗しました')
   renderRecipes()
 }
 
@@ -844,19 +1490,20 @@ function toggleEditTag(t) {
   el.classList.toggle('active')
 }
 
-function saveEditRecipe() {
+async function saveEditRecipe() {
   const r = recipes.find(r => r.id === editingId)
   if (!r) return
   const editImgInput = document.getElementById('edit-image-input')
-  r.image = editImgInput._deleted ? '' : (editImgInput._base64 || r.image || '')
-  r.name = document.getElementById('edit-name').value.trim()
-  r.servings = document.getElementById('edit-servings').value.trim()
-  r.ingredients = document.getElementById('edit-ingredients').value.trim()
-  r.steps = document.getElementById('edit-steps').value.trim()
-  r.categories = getSelectedCats('edit-cat-select')
-  r.category = r.categories[0] || ''
-  r.tags = [...document.querySelectorAll('#edit-spec-tags .spec-tag.active')].map(el => el.textContent)
-  localStorage.setItem('recipes', JSON.stringify(recipes))
+  const image = editImgInput._deleted ? '' : (editImgInput._base64 || r.image || '')
+  const name = document.getElementById('edit-name').value.trim()
+  const servings = document.getElementById('edit-servings').value.trim()
+  const ings = document.getElementById('edit-ingredients').value.trim()
+  const steps = document.getElementById('edit-steps').value.trim()
+  const categories = getSelectedCats('edit-cat-select')
+  const tags = [...document.querySelectorAll('#edit-spec-tags .spec-tag.active')].map(el => el.textContent)
+  const { error } = await sb.from('recipes').update({ name, servings, ingredients: ings, steps, categories, tags, image }).eq('id', editingId).eq('user_id', currentUser.id)
+  if (error) { notify('更新に失敗しました'); return }
+  Object.assign(r, { name, servings, ingredients: ings, steps, categories, tags, image })
   closeEditModal()
   renderRecipes()
   notify('レシピを更新しました！')
@@ -867,6 +1514,8 @@ function closeEditModal(e) {
   document.getElementById('edit-modal').classList.remove('show')
   editingId = null
 }
+
+let currentPlan = null
 
 // 献立生成
 async function generatePlan() {
@@ -888,6 +1537,8 @@ async function generatePlan() {
 }
 
 function renderPlan(plan) {
+  currentPlan = plan
+  document.getElementById('plan-share-btns').style.display = 'grid'
   const el = document.getElementById('plan-content')
   el.innerHTML = `
     <button class="btn btn-primary" onclick="generatePlan()" style="margin-bottom:14px">🔄 再生成</button>
@@ -1014,12 +1665,20 @@ async function readRecipePhoto(event) {
   status.style.color = 'var(--text2)'
   status.textContent = '🤖 レシピを読み取り中...'
   const base64 = await new Promise(resolve => {
-    const reader = new FileReader()
-    reader.onload = e => resolve(e.target.result.split(',')[1])
-    reader.readAsDataURL(file)
+    const blobUrl = URL.createObjectURL(file)
+    const tmpImg = new Image()
+    tmpImg.onload = () => {
+      const canvas = document.createElement('canvas')
+      canvas.width = tmpImg.width
+      canvas.height = tmpImg.height
+      canvas.getContext('2d').drawImage(tmpImg, 0, 0)
+      URL.revokeObjectURL(blobUrl)
+      resolve(canvas.toDataURL('image/jpeg', 0.85).split(',')[1])
+    }
+    tmpImg.src = blobUrl
   })
   try {
-    const text = await callApi({ type: 'recipe', imageBase64: base64, imageType: file.type })
+    const text = await callApi({ type: 'recipe', imageBase64: base64, imageType: 'image/jpeg' })
     const match = text.match(/\{[\s\S]*\}/)
     if (!match) throw new Error('レシピを読み取れませんでした')
     const recipe = JSON.parse(match[0])
@@ -1050,12 +1709,20 @@ async function readReceipt(event) {
   status.style.color = 'var(--text2)'
   status.textContent = '🤖 レシートを解析中...'
   const base64 = await new Promise(resolve => {
-    const reader = new FileReader()
-    reader.onload = e => resolve(e.target.result.split(',')[1])
-    reader.readAsDataURL(file)
+    const blobUrl = URL.createObjectURL(file)
+    const tmpImg = new Image()
+    tmpImg.onload = () => {
+      const canvas = document.createElement('canvas')
+      canvas.width = tmpImg.width
+      canvas.height = tmpImg.height
+      canvas.getContext('2d').drawImage(tmpImg, 0, 0)
+      URL.revokeObjectURL(blobUrl)
+      resolve(canvas.toDataURL('image/jpeg', 0.85).split(',')[1])
+    }
+    tmpImg.src = blobUrl
   })
   try {
-    const text = await callApi({ type: 'receipt', imageBase64: base64, imageType: file.type })
+    const text = await callApi({ type: 'receipt', imageBase64: base64, imageType: 'image/jpeg' })
     const match = text.match(/\[[\s\S]*\]/)
     if (!match) throw new Error('食材を読み取れませんでした')
     const extracted = JSON.parse(match[0])
@@ -1081,8 +1748,229 @@ async function readReceipt(event) {
   event.target.value = ''
 }
 
+// 献立共有
+function sharePlanLink() {
+  if (!currentPlan) return
+  const encoded = btoa(encodeURIComponent(JSON.stringify(currentPlan)))
+  const url = `${location.origin}${location.pathname}?plan=${encoded}`
+  if (navigator.share) {
+    navigator.share({ title: '献立アプリの献立', url })
+  } else {
+    navigator.clipboard.writeText(url)
+    notify('リンクをコピーしました！')
+  }
+}
+
+function sharePlanText() {
+  if (!currentPlan) return
+  const lines = ['🍱 今週の献立', '']
+  currentPlan.forEach(p => {
+    lines.push(`【${p.day}】`)
+    if (p.meals.朝) lines.push(`  朝: ${p.meals.朝}`)
+    if (p.meals.昼) lines.push(`  昼: ${p.meals.昼}`)
+    if (p.meals.夜) lines.push(`  夜: ${p.meals.夜}`)
+    if (p.note) lines.push(`  💬 ${p.note}`)
+    lines.push('')
+  })
+  lines.push('--- 献立アプリより ---')
+  const text = lines.join('\n')
+  if (navigator.share) {
+    navigator.share({ title: '今週の献立', text })
+  } else {
+    navigator.clipboard.writeText(text)
+    notify('テキストをコピーしました！')
+  }
+}
+
+function showPublicPlan(encoded) {
+  try {
+    const plan = JSON.parse(decodeURIComponent(atob(encoded)))
+    document.body.innerHTML = `
+      <div style="max-width:480px;margin:0 auto;padding:20px 16px;font-family:sans-serif">
+        <h1 style="font-size:22px;font-weight:800;margin:0 0 16px">🍱 今週の献立</h1>
+        ${plan.map(p => `
+          <div style="background:#f5f5f5;border-radius:12px;padding:14px;margin-bottom:10px">
+            <div style="font-weight:800;font-size:15px;margin-bottom:8px">${p.day}</div>
+            <div style="display:grid;gap:4px">
+              <div><span style="font-size:11px;color:#888">朝</span> <span style="font-size:14px;font-weight:600">${p.meals.朝||'—'}</span></div>
+              <div><span style="font-size:11px;color:#888">昼</span> <span style="font-size:14px;font-weight:600">${p.meals.昼||'—'}</span></div>
+              <div><span style="font-size:11px;color:#888">夜</span> <span style="font-size:14px;font-weight:600">${p.meals.夜||'—'}</span></div>
+            </div>
+            ${p.note ? `<div style="font-size:12px;color:#666;margin-top:6px">💬 ${p.note}</div>` : ''}
+          </div>
+        `).join('')}
+        <a href="${location.origin}${location.pathname}" style="display:block;text-align:center;background:#ff6b35;color:#fff;padding:14px;border-radius:12px;text-decoration:none;font-weight:700;margin-top:8px">🍱 献立アプリを開く</a>
+      </div>
+    `
+  } catch {
+    document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-size:16px;color:#888">献立が見つかりません</div>'
+  }
+}
+
+// ガイド
+function showGuide(section) {
+  ['cuts','heat','measure','prep','plate'].forEach(s => {
+    document.getElementById('guide-' + s).style.display = s === section ? 'block' : 'none'
+  })
+  document.querySelectorAll('.guide-nav-btn').forEach((btn, i) => {
+    btn.classList.toggle('active', ['cuts','heat','measure','prep','plate'][i] === section)
+  })
+}
+
+// バックアップ・共有パネル
+function toggleSharePanel() {
+  const p = document.getElementById('share-panel')
+  p.style.display = p.style.display === 'none' ? 'block' : 'none'
+}
+
+function exportRecipes() {
+  const data = recipes.map(({ id, created_at, user_id, ...r }) => r)
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(blob)
+  a.download = `recipes_${new Date().toISOString().slice(0,10)}.json`
+  a.click()
+  notify(`${data.length}件のレシピをエクスポートしました`)
+}
+
+async function importRecipes(event) {
+  const file = event.target.files[0]
+  if (!file) return
+  try {
+    const text = await file.text()
+    const data = JSON.parse(text)
+    if (!Array.isArray(data)) throw new Error('フォーマットが正しくありません')
+    const rows = data.map(r => ({ ...r, user_id: currentUser.id, image: r.image || '', is_public: false }))
+    const { data: inserted, error } = await sb.from('recipes').insert(rows).select()
+    if (error) throw error
+    inserted.forEach(r => recipes.unshift({ ...r, categories: r.categories || [], tags: r.tags || [] }))
+    renderRecipes()
+    notify(`${inserted.length}件のレシピをインポートしました`)
+  } catch (e) {
+    notify('インポート失敗: ' + e.message)
+  }
+  event.target.value = ''
+}
+
+async function showMyShareCode() {
+  const box = document.getElementById('my-share-code')
+  if (box.style.display === 'block') { box.style.display = 'none'; return }
+  await sb.from('recipes').update({ is_public: true }).eq('user_id', currentUser.id)
+  document.getElementById('share-code-text').textContent = currentUser.id
+  box.style.display = 'block'
+}
+
+function copyShareCode() {
+  navigator.clipboard.writeText(currentUser.id).then(() => notify('コードをコピーしました'))
+}
+
+async function importByCode() {
+  const code = document.getElementById('share-code-input').value.trim()
+  if (!code) { notify('共有コードを入力してください'); return }
+  const { data, error } = await sb.from('recipes').select('*').eq('user_id', code).eq('is_public', true)
+  if (error || !data?.length) { notify('レシピが見つかりませんでした'); return }
+  const rows = data.map(({ id, created_at, user_id, is_public, ...r }) => ({ ...r, user_id: currentUser.id, is_public: false }))
+  const { data: inserted, error: err } = await sb.from('recipes').insert(rows).select()
+  if (err) { notify('取り込みに失敗しました'); return }
+  inserted.forEach(r => recipes.unshift({ ...r, categories: r.categories || [], tags: r.tags || [] }))
+  renderRecipes()
+  notify(`${inserted.length}件のレシピを取り込みました`)
+  document.getElementById('share-code-input').value = ''
+}
+
+// レシピ共有
+async function shareRecipeLink(id) {
+  const { error } = await sb.from('recipes').update({ is_public: true }).eq('id', id)
+  if (error) { notify('シェアに失敗しました'); return }
+  const url = `${location.origin}${location.pathname}?recipe=${id}`
+  if (navigator.share) {
+    navigator.share({ title: '献立アプリのレシピ', url })
+  } else {
+    await navigator.clipboard.writeText(url)
+    notify('リンクをコピーしました！')
+  }
+}
+
+function shareRecipeText(id) {
+  const r = recipes.find(r => r.id === id)
+  if (!r) return
+  const lines = [
+    `【${r.name}】${r.servings ? ` ${r.servings}` : ''}`,
+    '',
+    '🧂 材料',
+    ...r.ingredients.split(/[,、，]+/).map(i => `・${i.trim()}`),
+  ]
+  if (r.steps) { lines.push('', '👨‍🍳 作り方', r.steps) }
+  lines.push('', '--- 献立アプリより ---')
+  const text = lines.join('\n')
+  if (navigator.share) {
+    navigator.share({ title: r.name, text })
+  } else {
+    navigator.clipboard.writeText(text)
+    notify('テキストをコピーしました！')
+  }
+}
+
+// 公開レシピ表示（ログイン不要）
+async function showPublicRecipe(id) {
+  const { data, error } = await sb.from('recipes').select('*').eq('id', id).eq('is_public', true).single()
+  if (error || !data) {
+    document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-size:16px;color:#888">レシピが見つかりません</div>'
+    return
+  }
+  const r = data
+  const ings = r.ingredients.split(/[,、，]+/).map(i => `<li style="padding:4px 0">${i.trim()}</li>`).join('')
+  document.body.innerHTML = `
+    <div style="max-width:480px;margin:0 auto;padding:20px 16px;font-family:sans-serif">
+      ${r.image ? `<img src="${r.image}" style="width:100%;border-radius:16px;margin-bottom:16px;object-fit:cover;max-height:240px">` : ''}
+      <h1 style="font-size:24px;font-weight:800;margin:0 0 4px">${r.name}</h1>
+      ${r.servings ? `<p style="color:#888;margin:0 0 16px">${r.servings}</p>` : ''}
+      <div style="background:#f5f5f5;border-radius:12px;padding:16px;margin-bottom:16px">
+        <div style="font-weight:700;margin-bottom:8px">🧂 材料</div>
+        <ul style="margin:0;padding-left:16px">${ings}</ul>
+      </div>
+      ${r.steps ? `<div style="background:#f5f5f5;border-radius:12px;padding:16px;margin-bottom:16px">
+        <div style="font-weight:700;margin-bottom:8px">👨‍🍳 作り方</div>
+        <p style="margin:0;line-height:1.8;white-space:pre-wrap">${r.steps}</p>
+      </div>` : ''}
+      <a href="${location.origin}${location.pathname}" style="display:block;text-align:center;background:#ff6b35;color:#fff;padding:14px;border-radius:12px;text-decoration:none;font-weight:700">🍱 献立アプリを開く</a>
+    </div>
+  `
+}
+
+async function doResetPassword() {
+  const pw = document.getElementById('reset-password').value
+  const pw2 = document.getElementById('reset-password2').value
+  const errEl = document.getElementById('reset-error')
+  errEl.textContent = ''
+  errEl.classList.remove('show')
+  if (pw.length < 6) { errEl.textContent = 'パスワードは6文字以上にしてください'; errEl.classList.add('show'); return }
+  if (pw !== pw2) { errEl.textContent = 'パスワードが一致しません'; errEl.classList.add('show'); return }
+  const { error } = await sb.auth.updateUser({ password: pw })
+  if (error) { errEl.textContent = translateAuthError(error.message); errEl.classList.add('show'); return }
+  document.getElementById('reset-screen').classList.remove('show')
+  notify('パスワードを変更しました！')
+  await onLogin()
+}
+
 // 初期化
-renderIngredients()
+const _params = new URLSearchParams(location.search)
+const _sharedRecipeId = _params.get('recipe')
+const _sharedPlan = _params.get('plan')
+if (_sharedRecipeId) {
+  showPublicRecipe(_sharedRecipeId)
+} else if (_sharedPlan) {
+  showPublicPlan(_sharedPlan)
+} else {
+  // パスワードリセットのリンクから来た場合
+  sb.auth.onAuthStateChange((event, session) => {
+    if (event === 'PASSWORD_RECOVERY') {
+      document.getElementById('auth-screen').classList.remove('show')
+      document.getElementById('reset-screen').classList.add('show')
+    }
+  })
+  initAuth()
+}
 </script>
 </body>
 </html>
