@@ -293,6 +293,8 @@ textarea.input { resize: none; min-height: 80px; }
 .staple-chip .chip-check { width:14px; height:14px; border-radius:50%; border:1.5px solid currentColor; display:inline-flex; align-items:center; justify-content:center; font-size:9px; flex-shrink:0; }
 .staple-chip.in-stock .chip-check { background:var(--green); border-color:var(--green); color:#fff; }
 .staple-chip.out-stock .chip-check { background:transparent; }
+.staple-chip .chip-edit-staple { font-size:10px; opacity:0.4; margin-left:2px; color:var(--text2); }
+.staple-chip:hover .chip-edit-staple, .staple-chip:active .chip-edit-staple { opacity:1; }
 
 /* Mypage */
 .mypage-avatar { width: 72px; height: 72px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), #c05f1f); display: flex; align-items: center; justify-content: center; font-size: 32px; margin: 0 auto 12px; box-shadow: 0 4px 14px rgba(224,123,57,0.35); }
@@ -1046,6 +1048,23 @@ textarea.input { resize: none; min-height: 80px; }
 </div>
 
 <!-- Plan Edit Modal -->
+<div class="modal-bg" id="staple-edit-modal" onclick="closeStapleEditModal(event)" style="display:none">
+  <div class="modal">
+    <div class="modal-title">常備品を編集</div>
+    <div id="staple-edit-name" style="font-size:16px;font-weight:800;color:var(--accent);text-align:center;margin-bottom:4px"></div>
+    <div style="font-size:12px;color:var(--text2);text-align:center;margin-bottom:14px">現在: <span id="staple-edit-current-cat"></span></div>
+    <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px">カテゴリを変更</div>
+    <div id="staple-edit-cat-btns" style="display:grid;gap:8px;margin-bottom:16px"></div>
+    <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:6px">名前を変更</div>
+    <input class="input" id="staple-edit-name-input" style="margin-bottom:12px" placeholder="食材名">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+      <button class="btn" style="background:var(--red);color:#fff;border:none;margin-top:0" onclick="deleteStapleItem()">削除</button>
+      <button class="btn" style="background:var(--surface2);border:1px solid var(--border);margin-top:0" onclick="closeStapleEditModal()">キャンセル</button>
+      <button class="btn btn-primary" style="margin-top:0" onclick="saveStapleEdit()">保存</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-bg" id="plan-edit-modal" onclick="closePlanEditModal(event)" style="display:none">
   <div class="modal">
     <div class="modal-title">献立を編集</div>
@@ -1486,7 +1505,8 @@ function renderIngredientStock() {
       <div style="font-size:11px;font-weight:700;color:var(--text2);margin:8px 0 4px">${g.label}</div>
       <div>${g.items.map(s => {
         const has = stock.has(s)
-        return `<span class="staple-chip ${has ? 'in-stock' : 'out-stock'}" onclick="toggleStaple('${s.replace(/'/g,"\\'")}')"><span class="chip-check">${has ? '✓' : ''}</span>${s}</span>`
+        const safe = s.replace(/'/g,"\\'")
+        return `<span class="staple-chip ${has ? 'in-stock' : 'out-stock'}" onclick="toggleStaple('${safe}')"><span class="chip-check">${has ? '✓' : ''}</span>${s}<span class="chip-edit-staple" onclick="event.stopPropagation();openStapleEdit('${safe}','${g.label.replace(/'/g,"\\'")}')">✎</span></span>`
       }).join('')}</div>
     `).join('')
   }
@@ -1554,6 +1574,65 @@ function removeIngredient(i) {
   localStorage.setItem('ingredients', JSON.stringify(ingredients))
   renderIngredients()
   if (document.getElementById('tab-ing-stock').style.display !== 'none') renderIngredientStock()
+}
+
+let editingStaple = { name: '', fromLabel: '' }
+
+function openStapleEdit(name, fromLabel) {
+  editingStaple = { name, fromLabel }
+  document.getElementById('staple-edit-name').textContent = `「${name}」`
+  document.getElementById('staple-edit-current-cat').textContent = fromLabel
+  document.getElementById('staple-edit-name-input').value = name
+  const groups = getStaples()
+  document.getElementById('staple-edit-cat-btns').innerHTML = groups.map(g =>
+    `<button class="btn ${g.label === fromLabel ? 'btn-primary' : ''}" style="margin-top:0;${g.label === fromLabel ? '' : 'background:var(--surface2);border:1px solid var(--border);color:var(--text)'}" onclick="moveStapleToGroup('${g.label.replace(/'/g,"\\'")}')">
+      ${g.label === fromLabel ? '✓ ' : ''}${g.label}
+    </button>`
+  ).join('')
+  document.getElementById('staple-edit-modal').style.display = 'flex'
+}
+
+function moveStapleToGroup(toLabel) {
+  editingStaple.toLabel = toLabel
+  document.getElementById('staple-edit-cat-btns').querySelectorAll('button').forEach(btn => {
+    const isSelected = btn.textContent.trim().replace(/^✓ /,'') === toLabel
+    btn.className = `btn ${isSelected ? 'btn-primary' : ''}`
+    btn.style.cssText = `margin-top:0;${isSelected ? '' : 'background:var(--surface2);border:1px solid var(--border);color:var(--text)'}`
+    btn.textContent = (isSelected ? '✓ ' : '') + btn.textContent.trim().replace(/^✓ /,'')
+  })
+}
+
+function saveStapleEdit() {
+  const groups = getStaples()
+  const newName = document.getElementById('staple-edit-name-input').value.trim()
+  const toLabel = editingStaple.toLabel || editingStaple.fromLabel
+  // 元のグループから削除
+  const fromGroup = groups.find(g => g.label === editingStaple.fromLabel)
+  if (fromGroup) fromGroup.items = fromGroup.items.filter(i => i !== editingStaple.name)
+  // 新しいグループに追加
+  const toGroup = groups.find(g => g.label === toLabel) || groups[groups.length - 1]
+  if (newName && !toGroup.items.includes(newName)) toGroup.items.push(newName)
+  else if (!newName && !toGroup.items.includes(editingStaple.name)) toGroup.items.push(editingStaple.name)
+  saveStaples(groups)
+  closeStapleEditModal()
+  renderIngredientStock()
+  notify('更新しました')
+}
+
+function deleteStapleItem() {
+  const groups = getStaples()
+  const fromGroup = groups.find(g => g.label === editingStaple.fromLabel)
+  if (fromGroup) fromGroup.items = fromGroup.items.filter(i => i !== editingStaple.name)
+  saveStaples(groups)
+  closeStapleEditModal()
+  renderIngredientStock()
+  notify(`「${editingStaple.name}」を常備品から削除しました`)
+}
+
+function closeStapleEditModal(e) {
+  if (e && e.target !== e.currentTarget) return
+  document.getElementById('staple-edit-modal').style.display = 'none'
+  editingStaple = { name: '', fromLabel: '' }
 }
 
 function addToStaples(name) {
