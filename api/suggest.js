@@ -10,17 +10,18 @@ export default async function handler(req, res) {
   let messages, system, tools, toolChoice, extraHeaders = {}
 
   if (type === 'plan') {
-    const { meals, servings, priority } = req.body || {}
+    const { meals, dishes, servings, priority } = req.body || {}
     const mealList = (Array.isArray(meals) && meals.length) ? meals : ['朝','昼','夜']
+    const dishList = (Array.isArray(dishes) && dishes.length) ? dishes : ['メイン','副菜','汁物']
     const servingsNum = Number(servings) || 2
     const priorityList = Array.isArray(priority) ? priority.slice(0, 10) : []
-    // 食材は料理に使えそうなものだけ20件に絞る（飲料等を除外）
     const ingList = (ingredients || []).filter(i => i.length <= 12).slice(0, 20)
     const topRecipes = (recipes || []).slice(0, 8)
     const recipeList = topRecipes.length ? `\n登録レシピ:${topRecipes.map(r => r.name).join('、')}` : ''
     const priorityNote = priorityList.length ? `\n優先食材:${priorityList.join('、')}` : ''
-    const mealExample = mealList.map(m => `"${m}":"料理名"`).join(',')
-    system = `献立アドバイザー。3日分の献立をJSONのみで返す。前置き・説明不要。対象:${mealList.join('・')}、${servingsNum}人分。
+    const dishExample = dishList.map(d => `"${d}":"料理名"`).join(',')
+    const mealExample = mealList.map(m => `"${m}":{${dishExample}}`).join(',')
+    system = `献立アドバイザー。3日分の献立をJSONのみで返す。前置き・説明不要。対象:${mealList.join('・')}、種類:${dishList.join('・')}、${servingsNum}人分。
 必ず以下の形式で3要素の配列を返す:
 [{"day":"1日目","meals":{${mealExample}},"note":"一言","missing":["不足食材1"]},{"day":"2日目","meals":{${mealExample}},"note":"一言","missing":[]},{"day":"3日目","meals":{${mealExample}},"note":"一言","missing":[]}]`
     messages = [{ role: 'user', content: `食材:${ingList.join('、') || 'なし'}${recipeList}${priorityNote}\n3日分の献立JSONを返してください。` }]
@@ -56,7 +57,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const maxTokensMap = { plan: 1200, search: 1200, receipt: 300, fridge: 400, recipe: 400 }
+    const maxTokensMap = { plan: 2000, search: 1200, receipt: 300, fridge: 400, recipe: 400 }
     const body = { model: 'claude-haiku-4-5-20251001', max_tokens: maxTokensMap[type] || 800, system, messages }
     if (tools) body.tools = tools
     if (toolChoice) body.tool_choice = toolChoice
