@@ -575,8 +575,20 @@ textarea.input { resize: none; min-height: 80px; }
       </button>
     </div>
 
+    <!-- 常備品設定 -->
+    <div class="section-title" style="margin-bottom:8px;margin-top:4px">常備品の設定</div>
+    <div class="card" style="margin-bottom:8px">
+      <div style="font-size:13px;color:var(--text2);margin-bottom:12px">食材在庫の「常備品」欄に表示する食材を管理できます</div>
+      <div id="staple-settings-body"></div>
+      <div style="display:flex;gap:8px;margin-top:12px;border-top:1px solid var(--border);padding-top:12px">
+        <input class="input" id="staple-add-input" placeholder="食材名を追加..." style="flex:1;font-size:14px">
+        <button class="btn btn-small" style="background:var(--accent);color:#fff;border:none;white-space:nowrap" onclick="addStapleItem()">追加</button>
+      </div>
+    </div>
+    <button class="btn" style="background:var(--surface2);border:1px solid var(--border);width:100%;margin-bottom:16px;font-size:13px" onclick="resetStaples()">デフォルトに戻す</button>
+
     <!-- アプリ情報 -->
-    <div class="section-title" style="margin-bottom:8px;margin-top:4px">ℹ️ アプリ情報</div>
+    <div class="section-title" style="margin-bottom:8px;margin-top:4px">アプリ情報</div>
     <div class="card" style="padding:0;overflow:hidden">
       <div class="mypage-menu-item" style="cursor:default">
         <span class="mypage-menu-icon">🍱</span>
@@ -1166,6 +1178,70 @@ function renderMyPage() {
   document.getElementById('stat-favs').textContent = favs
   document.getElementById('stat-cats').textContent = cats
   document.getElementById('stat-ingredients').textContent = ingredients.length
+
+  renderStapleSettings()
+}
+
+function renderStapleSettings() {
+  const el = document.getElementById('staple-settings-body')
+  if (!el) return
+  const groups = getStaples()
+  el.innerHTML = groups.map((g, gi) => `
+    <div style="margin-bottom:10px">
+      <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:5px">${g.label}</div>
+      <div>${g.items.map((s, si) => `
+        <span style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:13px;font-weight:600;margin:2px;background:var(--surface2);border:1px solid var(--border)">
+          ${s}
+          <button onclick="removeStapleItem(${gi},${si})" style="background:none;border:none;cursor:pointer;color:var(--text2);font-size:12px;padding:0;line-height:1">✕</button>
+        </span>
+      `).join('')}</div>
+    </div>
+  `).join('')
+}
+
+function removeStapleItem(gi, si) {
+  const groups = getStaples()
+  groups[gi].items.splice(si, 1)
+  if (groups[gi].items.length === 0) groups.splice(gi, 1)
+  saveStaples(groups)
+  renderStapleSettings()
+}
+
+function addStapleItem() {
+  const input = document.getElementById('staple-add-input')
+  const name = input.value.trim()
+  if (!name) return
+  const groups = getStaples()
+  // カテゴリ自動判定
+  let targetGroup = null
+  for (const [cat, keywords] of Object.entries(ING_CAT_MAP)) {
+    if (keywords.some(k => name.includes(k))) {
+      const labelMap = { '野菜':'野菜', '肉・魚':'肉・加工品', '卵・乳製品':'卵・乳製品', '調味料':'調味料', '穀物・麺':'パン・主食' }
+      const label = labelMap[cat] || 'その他'
+      targetGroup = groups.find(g => g.label === label)
+      break
+    }
+  }
+  if (!targetGroup) {
+    targetGroup = groups.find(g => g.label === 'その他')
+    if (!targetGroup) { groups.push({ label: 'その他', items: [] }); targetGroup = groups[groups.length - 1] }
+  }
+  if (!targetGroup.items.includes(name)) {
+    targetGroup.items.push(name)
+    saveStaples(groups)
+    renderStapleSettings()
+    notify(`「${name}」を常備品に追加しました`)
+  } else {
+    notify('すでに登録されています')
+  }
+  input.value = ''
+}
+
+function resetStaples() {
+  if (!confirm('常備品をデフォルトに戻しますか？')) return
+  localStorage.removeItem('stapleGroups')
+  renderStapleSettings()
+  notify('常備品をリセットしました')
 }
 
 async function startPasswordChange() {
@@ -1209,14 +1285,27 @@ const ING_CAT_MAP = {
   '調味料': ['醤油','しょうゆ','みりん','酒','塩','砂糖','味噌','みそ','ケチャップ','マヨネーズ','ソース','オリーブオイル','ごま油','サラダ油','酢','こしょう','胡椒','だし','コンソメ','鶏ガラ','豆板醤','甜麺醤','オイスター','ポン酢','ごま','片栗粉','小麦粉','パン粉','めんつゆ','ドレッシング'],
   '穀物・麺': ['米','ご飯','パスタ','うどん','そば','ラーメン','そうめん','スパゲティ','マカロニ','餃子の皮','食パン','パン','麺'],
 }
-const STAPLE_GROUPS = [
+const STAPLE_DEFAULTS = [
   { label: '野菜', items: ['玉ねぎ','にんじん','じゃがいも','キャベツ','大根','長ねぎ','もやし','ほうれん草','ブロッコリー','ミニトマト','にんにく','生姜'] },
   { label: '肉・加工品', items: ['鶏もも肉','豚こま肉','合いびき肉','ウインナー','ベーコン','ハム','ちくわ'] },
   { label: '卵・乳製品', items: ['卵','牛乳','バター','チーズ','ヨーグルト'] },
   { label: 'パン・主食', items: ['食パン','豆腐','納豆','油揚げ'] },
   { label: '調味料', items: ['醤油','みりん','酒','塩','砂糖','ごま油','サラダ油','酢','こしょう','片栗粉','小麦粉','だし','みそ','ケチャップ','マヨネーズ','めんつゆ'] },
 ]
-const STAPLE_LIST = STAPLE_GROUPS.flatMap(g => g.items)
+
+function getStaples() {
+  try {
+    const saved = localStorage.getItem('stapleGroups')
+    if (saved) return JSON.parse(saved)
+  } catch {}
+  return STAPLE_DEFAULTS.map(g => ({ ...g, items: [...g.items] }))
+}
+
+function saveStaples(groups) {
+  localStorage.setItem('stapleGroups', JSON.stringify(groups))
+}
+
+const STAPLE_LIST = STAPLE_DEFAULTS.flatMap(g => g.items)
 
 function classifyIngredient(name) {
   for (const [cat, keywords] of Object.entries(ING_CAT_MAP)) {
@@ -1239,10 +1328,11 @@ function renderIngredientStock() {
     ).join('')
   }
 
-  // 常備品（グループ別）
+  // 常備品（グループ別・動的）
   const staplesEl = document.getElementById('ing-staples')
   if (staplesEl) {
-    staplesEl.innerHTML = STAPLE_GROUPS.map(g => `
+    const groups = getStaples()
+    staplesEl.innerHTML = groups.map(g => `
       <div style="font-size:11px;font-weight:700;color:var(--text2);margin:8px 0 4px">${g.label}</div>
       <div>${g.items.map(s => {
         const has = ingredients.some(i => i === s || i.includes(s) || s.includes(i))
