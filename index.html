@@ -509,11 +509,24 @@ textarea.input { resize: none; min-height: 80px; }
 
   <!-- 献立タブ -->
   <div id="tab-plan" style="display:none">
-    <h1>🍱 献立提案</h1>
-    <div id="plan-content"><div class="loading">「食材で献立を作る」ボタンを押してください</div></div>
-    <div id="plan-share-btns" style="display:none;display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">
-      <button class="btn" style="background:var(--surface2);border:1px solid var(--border);margin-top:0" onclick="sharePlanLink()">🔗 リンクをシェア</button>
-      <button class="btn" style="background:var(--surface2);border:1px solid var(--border);margin-top:0" onclick="sharePlanText()">📋 テキストをシェア</button>
+    <h1>献立提案</h1>
+
+    <!-- 食材サマリー＋生成ボタン -->
+    <div class="card" style="margin-bottom:12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div class="section-title" style="margin:0">使用する食材</div>
+        <button class="btn btn-small" style="font-size:12px" onclick="showTab('ing-stock')">食材を編集</button>
+      </div>
+      <div id="plan-ing-summary" style="font-size:13px;color:var(--text2);min-height:20px"></div>
+      <button class="btn btn-primary btn-green" onclick="generatePlan()" style="margin-top:12px">
+        AIで3日分の献立を作る
+      </button>
+    </div>
+
+    <div id="plan-content"></div>
+    <div id="plan-share-btns" style="display:none;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">
+      <button class="btn" style="background:var(--surface2);border:1px solid var(--border);margin-top:0" onclick="sharePlanLink()">リンクをシェア</button>
+      <button class="btn" style="background:var(--surface2);border:1px solid var(--border);margin-top:0" onclick="sharePlanText()">テキストをシェア</button>
     </div>
   </div>
 
@@ -1160,6 +1173,7 @@ function showTab(tab) {
   if (tab === 'shopping') renderShopping()
   if (tab === 'mypage') renderMyPage()
   if (tab === 'ing-stock') renderIngredientStock()
+  if (tab === 'plan') renderPlanIngSummary()
 }
 
 function renderMyPage() {
@@ -1864,9 +1878,19 @@ function closeEditModal(e) {
 let currentPlan = null
 
 // 献立生成
+function renderPlanIngSummary() {
+  const el = document.getElementById('plan-ing-summary')
+  if (!el) return
+  if (ingredients.length === 0) {
+    el.innerHTML = '<span style="color:var(--text2)">食材が登録されていません。登録なしでもAIが献立を提案します。</span>'
+  } else {
+    el.innerHTML = ingredients.map(i => `<span class="ing-chip has" style="margin:2px;cursor:default">${i}</span>`).join('')
+  }
+}
+
 async function generatePlan() {
   const planEl = document.getElementById('plan-content')
-  planEl.innerHTML = '<div class="loading">🤖 AIが献立を考えています...</div>'
+  planEl.innerHTML = '<div class="loading">AIが献立を考えています...</div>'
   try {
     const text = await callApi({ type: 'plan', ingredients, recipes })
     const match = text.match(/\[[\s\S]*\]/)
@@ -1887,7 +1911,7 @@ function renderPlan(plan) {
   document.getElementById('plan-share-btns').style.display = 'grid'
   const el = document.getElementById('plan-content')
   el.innerHTML = `
-    <button class="btn btn-primary" onclick="generatePlan()" style="margin-bottom:14px">🔄 再生成</button>
+    <button class="btn btn-primary" onclick="generatePlan()" style="margin-bottom:14px">再生成</button>
     ${plan.map(p => `
       <div class="meal-item">
         <div class="meal-day">${p.day}</div>
